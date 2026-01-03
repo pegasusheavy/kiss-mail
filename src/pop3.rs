@@ -137,7 +137,10 @@ async fn process_pop3_command(line: &str, session: &mut Pop3Session, storage: &S
             if session.state != Pop3State::Transaction {
                 return format!("{} Not authenticated\r\n", POP3_ERR);
             }
-            if let Some(mailbox) = storage.get_mailbox(session.username.as_ref().unwrap()).await {
+            if let Some(mailbox) = storage
+                .get_mailbox(session.username.as_ref().unwrap())
+                .await
+            {
                 let emails = mailbox.get_active_emails();
                 let count = emails.len();
                 let size: usize = emails.iter().map(|e| e.size).sum();
@@ -150,7 +153,10 @@ async fn process_pop3_command(line: &str, session: &mut Pop3Session, storage: &S
             if session.state != Pop3State::Transaction {
                 return format!("{} Not authenticated\r\n", POP3_ERR);
             }
-            if let Some(mailbox) = storage.get_mailbox(session.username.as_ref().unwrap()).await {
+            if let Some(mailbox) = storage
+                .get_mailbox(session.username.as_ref().unwrap())
+                .await
+            {
                 let emails = mailbox.get_active_emails();
 
                 if let Some(msg_num) = parts.get(1) {
@@ -167,8 +173,7 @@ async fn process_pop3_command(line: &str, session: &mut Pop3Session, storage: &S
                     }
                 } else {
                     // All messages
-                    let mut response =
-                        format!("{} {} messages\r\n", POP3_OK, emails.len());
+                    let mut response = format!("{} {} messages\r\n", POP3_OK, emails.len());
                     for (i, email) in emails.iter().enumerate() {
                         response.push_str(&format!("{} {}\r\n", i + 1, email.size));
                     }
@@ -185,8 +190,9 @@ async fn process_pop3_command(line: &str, session: &mut Pop3Session, storage: &S
             }
             if let Some(msg_num) = parts.get(1) {
                 if let Ok(num) = msg_num.parse::<usize>() {
-                    if let Some(mailbox) =
-                        storage.get_mailbox(session.username.as_ref().unwrap()).await
+                    if let Some(mailbox) = storage
+                        .get_mailbox(session.username.as_ref().unwrap())
+                        .await
                     {
                         let emails = mailbox.get_active_emails();
                         if num > 0 && num <= emails.len() {
@@ -221,8 +227,9 @@ async fn process_pop3_command(line: &str, session: &mut Pop3Session, storage: &S
             }
             if let Some(msg_num) = parts.get(1) {
                 if let Ok(num) = msg_num.parse::<usize>() {
-                    if let Some(mailbox) =
-                        storage.get_mailbox(session.username.as_ref().unwrap()).await
+                    if let Some(mailbox) = storage
+                        .get_mailbox(session.username.as_ref().unwrap())
+                        .await
                     {
                         let emails = mailbox.get_active_emails();
                         if num > 0 && num <= emails.len() {
@@ -263,9 +270,7 @@ async fn process_pop3_command(line: &str, session: &mut Pop3Session, storage: &S
         "QUIT" => {
             if session.state == Pop3State::Transaction {
                 // Commit deletions
-                storage
-                    .expunge(session.username.as_ref().unwrap())
-                    .await;
+                storage.expunge(session.username.as_ref().unwrap()).await;
                 let _ = storage.save().await;
             }
             format!("{} Bye\r\n", POP3_OK)
@@ -274,7 +279,10 @@ async fn process_pop3_command(line: &str, session: &mut Pop3Session, storage: &S
             if session.state != Pop3State::Transaction {
                 return format!("{} Not authenticated\r\n", POP3_ERR);
             }
-            if let Some(mailbox) = storage.get_mailbox(session.username.as_ref().unwrap()).await {
+            if let Some(mailbox) = storage
+                .get_mailbox(session.username.as_ref().unwrap())
+                .await
+            {
                 let emails = mailbox.get_active_emails();
 
                 if let Some(msg_num) = parts.get(1) {
@@ -307,10 +315,12 @@ async fn process_pop3_command(line: &str, session: &mut Pop3Session, storage: &S
                 return format!("{} Not authenticated\r\n", POP3_ERR);
             }
             if let (Some(msg_num), Some(lines)) = (parts.get(1), parts.get(2)) {
-                if let (Ok(num), Ok(line_count)) = (msg_num.parse::<usize>(), lines.parse::<usize>())
+                if let (Ok(num), Ok(line_count)) =
+                    (msg_num.parse::<usize>(), lines.parse::<usize>())
                 {
-                    if let Some(mailbox) =
-                        storage.get_mailbox(session.username.as_ref().unwrap()).await
+                    if let Some(mailbox) = storage
+                        .get_mailbox(session.username.as_ref().unwrap())
+                        .await
                     {
                         let emails = mailbox.get_active_emails();
                         if num > 0 && num <= emails.len() {

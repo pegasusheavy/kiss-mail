@@ -100,7 +100,11 @@ impl Default for SsoConfig {
             userinfo_url: None,
             issuer_url: None,
             redirect_uri: "http://localhost:8080/callback".to_string(),
-            scopes: vec!["openid".to_string(), "profile".to_string(), "email".to_string()],
+            scopes: vec![
+                "openid".to_string(),
+                "profile".to_string(),
+                "email".to_string(),
+            ],
             username_claim: "preferred_username".to_string(),
             email_claim: "email".to_string(),
             name_claim: "name".to_string(),
@@ -137,7 +141,8 @@ impl SsoConfig {
             }
             config.auth_url = "https://accounts.google.com/o/oauth2/v2/auth".to_string();
             config.token_url = "https://oauth2.googleapis.com/token".to_string();
-            config.userinfo_url = Some("https://openidconnect.googleapis.com/v1/userinfo".to_string());
+            config.userinfo_url =
+                Some("https://openidconnect.googleapis.com/v1/userinfo".to_string());
         } else if let Ok(client_id) = std::env::var("MICROSOFT_CLIENT_ID") {
             config.provider = SsoProvider::Microsoft;
             config.client_id = client_id;
@@ -145,9 +150,16 @@ impl SsoConfig {
             if let Ok(secret) = std::env::var("MICROSOFT_CLIENT_SECRET") {
                 config.client_secret = secret;
             }
-            let tenant = std::env::var("MICROSOFT_TENANT_ID").unwrap_or_else(|_| "common".to_string());
-            config.auth_url = format!("https://login.microsoftonline.com/{}/oauth2/v2.0/authorize", tenant);
-            config.token_url = format!("https://login.microsoftonline.com/{}/oauth2/v2.0/token", tenant);
+            let tenant =
+                std::env::var("MICROSOFT_TENANT_ID").unwrap_or_else(|_| "common".to_string());
+            config.auth_url = format!(
+                "https://login.microsoftonline.com/{}/oauth2/v2.0/authorize",
+                tenant
+            );
+            config.token_url = format!(
+                "https://login.microsoftonline.com/{}/oauth2/v2.0/token",
+                tenant
+            );
             config.userinfo_url = Some("https://graph.microsoft.com/oidc/userinfo".to_string());
         } else if let Ok(client_id) = std::env::var("OKTA_CLIENT_ID") {
             config.provider = SsoProvider::Okta;
@@ -159,7 +171,8 @@ impl SsoConfig {
             if let Ok(domain) = std::env::var("OKTA_DOMAIN") {
                 config.auth_url = format!("https://{}/oauth2/default/v1/authorize", domain);
                 config.token_url = format!("https://{}/oauth2/default/v1/token", domain);
-                config.userinfo_url = Some(format!("https://{}/oauth2/default/v1/userinfo", domain));
+                config.userinfo_url =
+                    Some(format!("https://{}/oauth2/default/v1/userinfo", domain));
             }
         } else if let Ok(client_id) = std::env::var("AUTH0_CLIENT_ID") {
             config.provider = SsoProvider::Auth0;
@@ -242,8 +255,14 @@ impl SsoConfig {
             provider: SsoProvider::Microsoft,
             client_id: client_id.to_string(),
             client_secret: client_secret.to_string(),
-            auth_url: format!("https://login.microsoftonline.com/{}/oauth2/v2.0/authorize", tenant_id),
-            token_url: format!("https://login.microsoftonline.com/{}/oauth2/v2.0/token", tenant_id),
+            auth_url: format!(
+                "https://login.microsoftonline.com/{}/oauth2/v2.0/authorize",
+                tenant_id
+            ),
+            token_url: format!(
+                "https://login.microsoftonline.com/{}/oauth2/v2.0/token",
+                tenant_id
+            ),
             userinfo_url: Some("https://graph.microsoft.com/oidc/userinfo".to_string()),
             ..Default::default()
         }
@@ -584,9 +603,7 @@ impl SsoManager {
             .and_then(|v| v.as_str())
             .map(|s| s.to_string());
 
-        let email_verified = claims
-            .get("email_verified")
-            .and_then(|v| v.as_bool());
+        let email_verified = claims.get("email_verified").and_then(|v| v.as_bool());
 
         Ok(SsoUserInfo {
             sub,
@@ -643,7 +660,7 @@ impl SsoManager {
         protocol: &str,
     ) -> bool {
         let mut data = self.user_data.write().await;
-        
+
         if let Some(user_data) = data.get_mut(username) {
             for app_pw in &mut user_data.app_passwords {
                 // Check expiration
@@ -676,7 +693,7 @@ impl SsoManager {
     /// List app passwords for a user
     pub async fn list_app_passwords(&self, username: &str) -> Vec<AppPasswordInfo> {
         let data = self.user_data.read().await;
-        
+
         data.get(username)
             .map(|user_data| {
                 user_data
@@ -697,11 +714,11 @@ impl SsoManager {
     /// Revoke an app password
     pub async fn revoke_app_password(&self, username: &str, password_id: &str) -> bool {
         let mut data = self.user_data.write().await;
-        
+
         if let Some(user_data) = data.get_mut(username) {
             let initial_len = user_data.app_passwords.len();
             user_data.app_passwords.retain(|ap| ap.id != password_id);
-            
+
             if user_data.app_passwords.len() < initial_len {
                 drop(data);
                 let _ = self.save().await;
@@ -748,11 +765,11 @@ pub struct SsoStatus {
 fn generate_random_string(length: usize) -> String {
     use rand::Rng;
     let mut rng = rand::rng();
-    
+
     let chars: Vec<char> = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
         .chars()
         .collect();
-    
+
     (0..length)
         .map(|_| chars[rng.random_range(0..chars.len())])
         .collect()
@@ -761,12 +778,12 @@ fn generate_random_string(length: usize) -> String {
 /// Generate PKCE code challenge from verifier
 fn generate_pkce_challenge(verifier: &str) -> String {
     use base64::Engine;
-    use sha2::{Sha256, Digest};
-    
+    use sha2::{Digest, Sha256};
+
     let mut hasher = Sha256::new();
     hasher.update(verifier.as_bytes());
     let hash = hasher.finalize();
-    
+
     // Base64 URL-safe encoding without padding
     base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(hash)
 }
@@ -775,17 +792,17 @@ fn generate_pkce_challenge(verifier: &str) -> String {
 fn generate_app_password(length: usize) -> String {
     use rand::Rng;
     let mut rng = rand::rng();
-    
+
     // Use a character set that's easy to type and unambiguous
     let chars: Vec<char> = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789"
         .chars()
         .collect();
-    
+
     // Format as xxxx-xxxx-xxxx-xxxx for readability
     let raw: String = (0..length)
         .map(|_| chars[rng.random_range(0..chars.len())])
         .collect();
-    
+
     // Insert dashes every 4 characters
     raw.chars()
         .enumerate()
@@ -801,7 +818,7 @@ fn generate_app_password(length: usize) -> String {
 
 /// Hash an app password using Argon2
 fn hash_app_password(password: &str) -> Result<String, String> {
-    use argon2::{password_hash::SaltString, Argon2, PasswordHasher};
+    use argon2::{Argon2, PasswordHasher, password_hash::SaltString};
 
     // Use password_hash's own RNG to avoid version conflicts
     let salt = SaltString::generate(&mut password_hash::rand_core::OsRng);
@@ -815,7 +832,7 @@ fn hash_app_password(password: &str) -> Result<String, String> {
 
 /// Verify an app password
 fn verify_app_password(password: &str, hash: &str) -> bool {
-    use argon2::{password_hash::PasswordHash, Argon2, PasswordVerifier};
+    use argon2::{Argon2, PasswordVerifier, password_hash::PasswordHash};
 
     let parsed_hash = match PasswordHash::new(hash) {
         Ok(h) => h,
@@ -851,7 +868,7 @@ mod tests {
     fn test_app_password_hash_verify() {
         let password = "test-pass-word-1234";
         let hash = hash_app_password(password).unwrap();
-        
+
         assert!(verify_app_password(password, &hash));
         assert!(!verify_app_password("wrong-password", &hash));
     }
@@ -871,7 +888,7 @@ mod tests {
     async fn test_disabled_sso() {
         let manager = SsoManager::new(SsoConfig::default(), PathBuf::from("/tmp"));
         assert!(!manager.is_enabled());
-        
+
         let result = manager.start_auth().await;
         assert!(result.is_err());
     }

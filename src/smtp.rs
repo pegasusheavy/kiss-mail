@@ -49,7 +49,13 @@ impl SmtpServer {
         antivirus: Arc<AntiVirus>,
         hostname: String,
     ) -> Self {
-        Self { storage, groups, antispam, antivirus, hostname }
+        Self {
+            storage,
+            groups,
+            antispam,
+            antivirus,
+            hostname,
+        }
     }
 
     pub async fn run(&self, addr: &str) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
@@ -67,7 +73,10 @@ impl SmtpServer {
             let hostname = self.hostname.clone();
 
             tokio::spawn(async move {
-                if let Err(e) = handle_smtp_connection(socket, storage, groups, antispam, antivirus, hostname).await {
+                if let Err(e) =
+                    handle_smtp_connection(socket, storage, groups, antispam, antivirus, hostname)
+                        .await
+                {
                     tracing::error!("SMTP connection error: {}", e);
                 }
             });
@@ -132,7 +141,10 @@ async fn handle_smtp_connection(
                     .write_all(
                         format!(
                             "550 Message rejected: malware detected ({})\r\n",
-                            virus_result.threats.first().unwrap_or(&"unknown threat".to_string())
+                            virus_result
+                                .threats
+                                .first()
+                                .unwrap_or(&"unknown threat".to_string())
                         )
                         .as_bytes(),
                     )
@@ -140,7 +152,7 @@ async fn handle_smtp_connection(
                 session.reset();
                 continue;
             }
-            
+
             // Check for spam
             let spam_result = antispam
                 .check(
@@ -171,7 +183,7 @@ async fn handle_smtp_connection(
 
             // Add security headers to email
             let data_with_headers = add_security_headers(&data, &spam_result, &virus_result);
-            
+
             // Expand group recipients
             let mut final_recipients: Vec<String> = Vec::new();
             for rcpt in &session.rcpt_to {
@@ -228,14 +240,28 @@ fn add_security_headers(
         "X-Spam-Score: {:.1}\r\nX-Spam-Status: {}\r\nX-Virus-Scanned: kiss-mail\r\nX-Virus-Status: {}\r\n",
         spam_result.score,
         if spam_result.is_spam { "Yes" } else { "No" },
-        if virus_result.is_infected { "Infected" } else { "Clean" }
+        if virus_result.is_infected {
+            "Infected"
+        } else {
+            "Clean"
+        }
     );
-    
+
     // Insert after first line (usually "Received:" or start of headers)
     if let Some(first_newline) = data.find("\r\n") {
-        format!("{}{}{}", &data[..first_newline + 2], header, &data[first_newline + 2..])
+        format!(
+            "{}{}{}",
+            &data[..first_newline + 2],
+            header,
+            &data[first_newline + 2..]
+        )
     } else if let Some(first_newline) = data.find('\n') {
-        format!("{}{}{}", &data[..first_newline + 1], header, &data[first_newline + 1..])
+        format!(
+            "{}{}{}",
+            &data[..first_newline + 1],
+            header,
+            &data[first_newline + 1..]
+        )
     } else {
         format!("{}{}", header, data)
     }
@@ -377,8 +403,8 @@ async fn read_data(
 
 async fn handle_auth_plain(credentials: &str, storage: &Storage) -> Option<String> {
     // PLAIN auth format: \0username\0password (base64 encoded)
-    let decoded = base64::Engine::decode(&base64::engine::general_purpose::STANDARD, credentials)
-        .ok()?;
+    let decoded =
+        base64::Engine::decode(&base64::engine::general_purpose::STANDARD, credentials).ok()?;
     let parts: Vec<&[u8]> = decoded.split(|&b| b == 0).collect();
 
     if parts.len() >= 3 {

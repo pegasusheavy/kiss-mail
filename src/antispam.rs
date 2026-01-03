@@ -62,10 +62,10 @@ impl SpamResult {
         // - Rule score is normalized to 0-1 range (assuming max score of 10)
         // - AI probability is already 0-1
         // - Combined using weighted average
-        
+
         let rule_normalized = (self.score / 10.0).clamp(0.0, 1.0) as f64;
         let combined = rule_normalized * (1.0 - ai_weight) + self.ai_probability * ai_weight;
-        
+
         // Spam if:
         // 1. Combined score exceeds threshold, OR
         // 2. Rule score alone exceeds threshold (hard rules), OR
@@ -163,6 +163,7 @@ impl AntiSpam {
     }
 
     /// Save AI classifier data
+    #[allow(dead_code)]
     pub async fn save(&self) -> Result<(), std::io::Error> {
         self.ai_classifier.save().await
     }
@@ -226,12 +227,14 @@ impl AntiSpam {
     }
 
     /// Train the AI classifier with a spam email
+    #[allow(dead_code)]
     pub async fn learn_spam(&self, email: &str) {
         self.ai_classifier.learn_spam(email).await;
         let _ = self.ai_classifier.save().await;
     }
 
     /// Train the AI classifier with a ham (non-spam) email
+    #[allow(dead_code)]
     pub async fn learn_ham(&self, email: &str) {
         self.ai_classifier.learn_ham(email).await;
         let _ = self.ai_classifier.save().await;
@@ -323,7 +326,10 @@ impl AntiSpam {
     }
 
     fn check_headers(&self, raw: &str, result: &mut SpamResult) {
-        let headers_end = raw.find("\r\n\r\n").or_else(|| raw.find("\n\n")).unwrap_or(raw.len());
+        let headers_end = raw
+            .find("\r\n\r\n")
+            .or_else(|| raw.find("\n\n"))
+            .unwrap_or(raw.len());
         let headers = &raw[..headers_end].to_lowercase();
 
         // Missing common headers
@@ -407,10 +413,10 @@ impl AntiSpam {
                 .map(|p| subject_start + p)
                 .unwrap_or(raw.len());
             let subject = &raw[subject_start + 8..subject_line_end].trim();
-            
+
             let caps_ratio = subject.chars().filter(|c| c.is_uppercase()).count() as f32
                 / subject.chars().filter(|c| c.is_alphabetic()).count().max(1) as f32;
-            
+
             if caps_ratio > 0.7 && subject.len() > 10 {
                 result.add_score(1.0, "Subject mostly uppercase");
             }
@@ -497,47 +503,56 @@ impl AntiSpam {
         }
 
         // Base64 encoded executable attachments
-        if content.contains("content-transfer-encoding: base64") {
-            if content.contains(".exe")
+        if content.contains("content-transfer-encoding: base64")
+            && (content.contains(".exe")
                 || content.contains(".scr")
                 || content.contains(".bat")
                 || content.contains(".cmd")
                 || content.contains(".js\"")
-                || content.contains(".vbs")
-            {
-                result.add_score(5.0, "Executable attachment detected");
-            }
+                || content.contains(".vbs"))
+        {
+            result.add_score(5.0, "Executable attachment detected");
         }
 
         // Phishing patterns
-        if (content.contains("paypal") || content.contains("amazon") || content.contains("apple") || content.contains("microsoft"))
-            && (content.contains("verify") || content.contains("confirm") || content.contains("suspended"))
+        if (content.contains("paypal")
+            || content.contains("amazon")
+            || content.contains("apple")
+            || content.contains("microsoft"))
+            && (content.contains("verify")
+                || content.contains("confirm")
+                || content.contains("suspended"))
         {
             result.add_score(2.0, "Possible phishing attempt");
         }
     }
 
     /// Add a custom blocked keyword
+    #[allow(dead_code)]
     pub fn add_blocked_keyword(&mut self, keyword: String) {
         self.blocked_keywords.push(keyword.to_lowercase());
     }
 
     /// Set the rule-based spam threshold
+    #[allow(dead_code)]
     pub fn set_threshold(&mut self, threshold: f32) {
         self.threshold = threshold;
     }
 
     /// Set the AI spam probability threshold
+    #[allow(dead_code)]
     pub fn set_ai_threshold(&mut self, threshold: f64) {
         self.ai_threshold = threshold.clamp(0.0, 1.0);
     }
 
     /// Set the AI weight (0.0 = rules only, 1.0 = AI only)
+    #[allow(dead_code)]
     pub fn set_ai_weight(&mut self, weight: f64) {
         self.ai_weight = weight.clamp(0.0, 1.0);
     }
 
     /// Set rate limit parameters
+    #[allow(dead_code)]
     pub fn set_rate_limit(&mut self, max_per_window: u32, window_seconds: u64) {
         self.rate_limit_max = max_per_window;
         self.rate_limit_window = Duration::from_secs(window_seconds);
@@ -554,7 +569,7 @@ mod tests {
         let dir = tempdir().unwrap();
         let antispam = AntiSpam::new(dir.path().to_path_buf());
         let _ = antispam.load().await;
-        
+
         let result = antispam
             .check(
                 "user@example.com",
@@ -562,7 +577,7 @@ mod tests {
                 "From: user@example.com\r\nTo: recipient@example.com\r\nSubject: Hello\r\nDate: Mon, 1 Jan 2024 00:00:00 +0000\r\nMessage-ID: <123@example.com>\r\n\r\nHello, how are you?",
             )
             .await;
-        
+
         assert!(!result.is_spam);
         assert!(result.score < 5.0);
     }
@@ -572,7 +587,7 @@ mod tests {
         let dir = tempdir().unwrap();
         let antispam = AntiSpam::new(dir.path().to_path_buf());
         let _ = antispam.load().await;
-        
+
         let result = antispam
             .check(
                 "spammer@suspicious.xyz",
@@ -580,7 +595,7 @@ mod tests {
                 "Subject: YOU HAVE WON!!!! CLAIM YOUR PRIZE NOW!!!!\r\n\r\nDear Friend,\r\n\r\nCongratulations! You have won the lottery! Click here to claim your million dollars: http://bit.ly/scam\r\n\r\nAct now! Limited time offer! Wire transfer required.",
             )
             .await;
-        
+
         assert!(result.is_spam);
     }
 }

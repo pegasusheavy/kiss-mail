@@ -6,7 +6,7 @@
 use crate::crypto::{CryptoManager, EncryptionMetadata};
 use crate::ldap::{LdapAuthResult, LdapClient};
 use crate::sso::SsoManager;
-use crate::users::{UserAccount, UserManager, UserRole};
+use crate::users::{UserAccount, UserManager};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -77,7 +77,7 @@ impl Email {
             subject,
             headers,
             body: "[Encrypted]".to_string(), // Placeholder for encrypted content
-            raw: String::new(), // Don't store unencrypted raw
+            raw: String::new(),              // Don't store unencrypted raw
             received_at: Utc::now(),
             size,
             seen: false,
@@ -255,7 +255,11 @@ impl Storage {
     }
 
     /// Create storage with LDAP support
-    pub fn with_ldap(data_dir: PathBuf, user_manager: Arc<UserManager>, ldap_client: Arc<LdapClient>) -> Self {
+    pub fn with_ldap(
+        data_dir: PathBuf,
+        user_manager: Arc<UserManager>,
+        ldap_client: Arc<LdapClient>,
+    ) -> Self {
         Self {
             mailboxes: Arc::new(RwLock::new(HashMap::new())),
             user_manager,
@@ -313,7 +317,10 @@ impl Storage {
 
     /// Get encryption status
     pub fn encryption_enabled(&self) -> bool {
-        self.crypto_manager.as_ref().map(|c| c.is_enabled()).unwrap_or(false)
+        self.crypto_manager
+            .as_ref()
+            .map(|c| c.is_enabled())
+            .unwrap_or(false)
     }
 
     pub async fn load(&self) -> Result<(), std::io::Error> {
@@ -324,7 +331,10 @@ impl Storage {
             let mailboxes: HashMap<String, UserMailbox> = serde_json::from_str(&data)
                 .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))?;
             *self.mailboxes.write().await = mailboxes;
-            tracing::info!("Loaded {} mailboxes from storage", self.mailboxes.read().await.len());
+            tracing::info!(
+                "Loaded {} mailboxes from storage",
+                self.mailboxes.read().await.len()
+            );
         }
 
         // Migrate legacy users.json if it exists and mailboxes.json doesn't
@@ -337,7 +347,10 @@ impl Storage {
                     for (username, user) in legacy_users {
                         // Create user in UserManager if not exists
                         if !self.user_manager.user_exists(&username).await {
-                            let _ = self.user_manager.create_user(&username, &user.password, None).await;
+                            let _ = self
+                                .user_manager
+                                .create_user(&username, &user.password, None)
+                                .await;
                         }
                         // Create mailbox entry
                         let mut user_mailbox = UserMailbox::new(username.clone());
@@ -371,7 +384,10 @@ impl Storage {
 
     pub async fn create_user(&self, username: String, password: String) {
         // Create in user manager
-        let _ = self.user_manager.create_user(&username, &password, None).await;
+        let _ = self
+            .user_manager
+            .create_user(&username, &password, None)
+            .await;
         // Create mailbox
         let mut mailboxes = self.mailboxes.write().await;
         mailboxes.insert(username.clone(), UserMailbox::new(username));
@@ -391,7 +407,8 @@ impl Storage {
         ip: &str,
         protocol: &str,
     ) -> Result<UserAccount, String> {
-        self.authenticate_with_ldap(username, password, ip, protocol).await
+        self.authenticate_with_ldap(username, password, ip, protocol)
+            .await
     }
 
     /// Internal authentication with LDAP and SSO support
@@ -405,7 +422,10 @@ impl Storage {
         // Try SSO app password first if configured
         if let Some(ref sso) = self.sso_manager {
             if sso.verify_app_password(username, password, protocol).await {
-                tracing::info!("SSO app password authentication successful for {}", username);
+                tracing::info!(
+                    "SSO app password authentication successful for {}",
+                    username
+                );
                 // Get or create local user
                 if let Some(user) = self.user_manager.get_user(username).await {
                     return Ok(user);
@@ -441,18 +461,26 @@ impl Storage {
                 match ldap.authenticate(username, password).await {
                     LdapAuthResult::Success(ldap_user) => {
                         tracing::info!("LDAP authentication successful for {}", username);
-                        
+
                         // Ensure user exists locally (create if needed)
                         if !self.user_manager.user_exists(username).await {
                             // Auto-create local user from LDAP
                             let email = ldap_user.email.clone();
-                            match self.user_manager.create_user(username, password, None).await {
+                            match self
+                                .user_manager
+                                .create_user(username, password, None)
+                                .await
+                            {
                                 Ok(mut user) => {
                                     // Update with LDAP info
                                     if let Some(email) = email {
                                         user.settings.display_name = ldap_user.display_name.clone();
                                         // Store email for later use
-                                        tracing::info!("Created local user {} from LDAP ({})", username, email);
+                                        tracing::info!(
+                                            "Created local user {} from LDAP ({})",
+                                            username,
+                                            email
+                                        );
                                     }
                                 }
                                 Err(e) => {
@@ -460,12 +488,12 @@ impl Storage {
                                 }
                             }
                         }
-                        
+
                         // Return the local user account (or create minimal one)
                         if let Some(user) = self.user_manager.get_user(username).await {
                             return Ok(user);
                         }
-                        
+
                         // Create a minimal account for LDAP-only users
                         let now = chrono::Utc::now();
                         return Ok(UserAccount {
@@ -492,7 +520,10 @@ impl Storage {
                         });
                     }
                     LdapAuthResult::InvalidCredentials => {
-                        tracing::debug!("LDAP authentication failed for {}: invalid credentials", username);
+                        tracing::debug!(
+                            "LDAP authentication failed for {}: invalid credentials",
+                            username
+                        );
                         if !ldap.fallback_enabled() {
                             return Err("Invalid credentials".to_string());
                         }
@@ -542,7 +573,11 @@ impl Storage {
         if !self.user_manager.user_exists(&local_part).await {
             // Auto-create user for local delivery (KISS approach)
             let password = generate_random_password();
-            if let Err(e) = self.user_manager.create_user(&local_part, &password, None).await {
+            if let Err(e) = self
+                .user_manager
+                .create_user(&local_part, &password, None)
+                .await
+            {
                 tracing::warn!("Could not auto-create user {}: {}", local_part, e);
             } else {
                 tracing::info!("Auto-created user {} for email delivery", local_part);
@@ -560,7 +595,10 @@ impl Storage {
         let email_to_store = if let Some(crypto) = &self.crypto_manager {
             if crypto.is_enabled() && crypto.has_keys(&local_part).await {
                 // Encrypt the email body for storage
-                match crypto.encrypt_for_storage(&local_part, email.raw.as_bytes()).await {
+                match crypto
+                    .encrypt_for_storage(&local_part, email.raw.as_bytes())
+                    .await
+                {
                     Ok((encrypted_body, metadata)) => {
                         tracing::debug!("Encrypted email for {}", local_part);
                         Email::new_encrypted(
@@ -595,11 +633,18 @@ impl Storage {
 
         // Update user quota
         drop(mailboxes);
-        let _ = self.user_manager.update_user(&local_part, |u| {
-            u.quota.record_received(email_size as u64);
-        }).await;
+        let _ = self
+            .user_manager
+            .update_user(&local_part, |u| {
+                u.quota.record_received(email_size as u64);
+            })
+            .await;
 
-        tracing::info!("Delivered email to {} (encrypted: {})", local_part, self.encryption_enabled());
+        tracing::info!(
+            "Delivered email to {} (encrypted: {})",
+            local_part,
+            self.encryption_enabled()
+        );
         Ok(())
     }
 
@@ -609,18 +654,22 @@ impl Storage {
             return Ok(email.raw.clone());
         }
 
-        let crypto = self.crypto_manager.as_ref()
+        let crypto = self
+            .crypto_manager
+            .as_ref()
             .ok_or_else(|| "Encryption not configured".to_string())?;
 
-        let encrypted_body = email.encrypted_body.as_ref()
+        let encrypted_body = email
+            .encrypted_body
+            .as_ref()
             .ok_or_else(|| "Email marked as encrypted but no encrypted body".to_string())?;
 
-        let decrypted = crypto.decrypt_from_storage(username, encrypted_body, &email.encryption)
+        let decrypted = crypto
+            .decrypt_from_storage(username, encrypted_body, &email.encryption)
             .await
             .map_err(|e| e.to_string())?;
 
-        String::from_utf8(decrypted)
-            .map_err(|e| format!("Invalid UTF-8 in decrypted email: {}", e))
+        String::from_utf8(decrypted).map_err(|e| format!("Invalid UTF-8 in decrypted email: {}", e))
     }
 
     pub async fn get_mailbox(&self, username: &str) -> Option<Mailbox> {
@@ -677,10 +726,16 @@ impl Storage {
             // Update quota
             drop(mailboxes);
             if deleted_size > 0 {
-                let _ = self.user_manager.update_user(username, |u| {
-                    u.quota.current_usage = u.quota.current_usage.saturating_sub(deleted_size);
-                    u.quota.current_messages = u.quota.current_messages.saturating_sub(removed.len() as u32);
-                }).await;
+                let _ = self
+                    .user_manager
+                    .update_user(username, |u| {
+                        u.quota.current_usage = u.quota.current_usage.saturating_sub(deleted_size);
+                        u.quota.current_messages = u
+                            .quota
+                            .current_messages
+                            .saturating_sub(removed.len() as u32);
+                    })
+                    .await;
             }
 
             removed

@@ -36,8 +36,8 @@
 
 use argon2::Argon2;
 use chacha20poly1305::{
-    aead::{Aead, AeadCore, KeyInit, OsRng},
     ChaCha20Poly1305, Nonce,
+    aead::{Aead, AeadCore, KeyInit, OsRng},
 };
 use rand::RngCore;
 use serde::{Deserialize, Serialize};
@@ -105,7 +105,7 @@ pub struct EncryptedEmail {
 }
 
 /// Encryption metadata stored with emails
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct EncryptionMetadata {
     /// Whether the email is encrypted
     pub encrypted: bool,
@@ -115,17 +115,6 @@ pub struct EncryptionMetadata {
     pub key_version: u32,
     /// Whether this is end-to-end encrypted (sender is also local)
     pub e2e: bool,
-}
-
-impl Default for EncryptionMetadata {
-    fn default() -> Self {
-        Self {
-            encrypted: false,
-            algorithm: String::new(),
-            key_version: 0,
-            e2e: false,
-        }
-    }
 }
 
 // ============================================================================
@@ -181,12 +170,12 @@ impl CryptoManager {
         let keys = self.keys.read().await;
         let data = serde_json::to_string_pretty(&*keys)
             .map_err(|e| CryptoError::StorageError(e.to_string()))?;
-        
+
         let keys_path = self.data_dir.join("keys.json");
         tokio::fs::write(&keys_path, data)
             .await
             .map_err(|e| CryptoError::StorageError(e.to_string()))?;
-        
+
         Ok(())
     }
 
@@ -208,7 +197,7 @@ impl CryptoManager {
         let nonce = generate_random_bytes(NONCE_SIZE);
         let cipher = ChaCha20Poly1305::new_from_slice(&kek)
             .map_err(|e| CryptoError::EncryptionError(e.to_string()))?;
-        
+
         let encrypted_private_key = cipher
             .encrypt(Nonce::from_slice(&nonce), private_key.as_bytes().as_slice())
             .map_err(|e| CryptoError::EncryptionError(e.to_string()))?;
@@ -250,7 +239,7 @@ impl CryptoManager {
         // Decrypt private key
         let cipher = ChaCha20Poly1305::new_from_slice(&kek)
             .map_err(|e| CryptoError::DecryptionError(e.to_string()))?;
-        
+
         let private_key_bytes = cipher
             .decrypt(
                 Nonce::from_slice(&keypair.nonce),
@@ -262,7 +251,7 @@ impl CryptoManager {
         let private_key_array: [u8; 32] = private_key_bytes
             .try_into()
             .map_err(|_| CryptoError::DecryptionError("Invalid key length".to_string()))?;
-        
+
         let private_key = StaticSecret::from(private_key_array);
         let public_key = PublicKey::from(&private_key);
 
@@ -330,7 +319,7 @@ impl CryptoManager {
         let nonce = generate_random_bytes(NONCE_SIZE);
         let cipher = ChaCha20Poly1305::new_from_slice(&kek)
             .map_err(|e| CryptoError::EncryptionError(e.to_string()))?;
-        
+
         let encrypted_private_key = cipher
             .encrypt(
                 Nonce::from_slice(&nonce),
@@ -349,7 +338,10 @@ impl CryptoManager {
         }
         self.save_keys().await?;
 
-        tracing::info!("Re-encrypted keys for user after password change: {}", username);
+        tracing::info!(
+            "Re-encrypted keys for user after password change: {}",
+            username
+        );
         Ok(())
     }
 
@@ -392,7 +384,7 @@ impl CryptoManager {
         // Encrypt email body
         let cipher = ChaCha20Poly1305::new_from_slice(&symmetric_key)
             .map_err(|e| CryptoError::EncryptionError(e.to_string()))?;
-        
+
         let ciphertext = cipher
             .encrypt(&body_nonce, plaintext)
             .map_err(|e| CryptoError::EncryptionError(e.to_string()))?;
@@ -514,7 +506,7 @@ impl CryptoManager {
     pub async fn stats(&self) -> CryptoStats {
         let keys = self.keys.read().await;
         let sessions = self.sessions.read().await;
-        
+
         CryptoStats {
             total_keys: keys.len(),
             active_sessions: sessions.len(),
@@ -531,10 +523,10 @@ impl CryptoManager {
 fn derive_key_from_password(password: &str, salt: &[u8]) -> Result<[u8; KEY_SIZE], CryptoError> {
     // Use Argon2id with secure parameters
     let argon2 = Argon2::default();
-    
+
     // Hash password to get key using the raw salt
     let mut output = [0u8; KEY_SIZE];
-    
+
     // Use raw hash output with the salt directly
     argon2
         .hash_password_into(password.as_bytes(), salt, &mut output)
@@ -588,7 +580,9 @@ impl std::fmt::Display for CryptoError {
             Self::Disabled => write!(f, "Encryption is disabled"),
             Self::KeyNotFound(u) => write!(f, "Encryption key not found for user: {}", u),
             Self::InvalidPassword => write!(f, "Invalid password"),
-            Self::SessionNotFound(u) => write!(f, "Session not found for user: {} (not logged in)", u),
+            Self::SessionNotFound(u) => {
+                write!(f, "Session not found for user: {} (not logged in)", u)
+            }
             Self::KeyDerivationError(e) => write!(f, "Key derivation error: {}", e),
             Self::EncryptionError(e) => write!(f, "Encryption error: {}", e),
             Self::DecryptionError(e) => write!(f, "Decryption error: {}", e),
@@ -631,8 +625,11 @@ mod tests {
         let dir = tempdir().unwrap();
         let manager = CryptoManager::new(dir.path().to_path_buf());
 
-        let keypair = manager.generate_keypair("alice", "password123").await.unwrap();
-        
+        let keypair = manager
+            .generate_keypair("alice", "password123")
+            .await
+            .unwrap();
+
         assert_eq!(keypair.public_key.len(), 32);
         assert!(!keypair.encrypted_private_key.is_empty());
         assert_eq!(keypair.version, 1);
@@ -643,8 +640,11 @@ mod tests {
         let dir = tempdir().unwrap();
         let manager = CryptoManager::new(dir.path().to_path_buf());
 
-        manager.generate_keypair("alice", "password123").await.unwrap();
-        
+        manager
+            .generate_keypair("alice", "password123")
+            .await
+            .unwrap();
+
         // Correct password should work
         let session = manager.unlock_keys("alice", "password123").await;
         assert!(session.is_ok());
@@ -669,7 +669,7 @@ mod tests {
 
         // Decrypt email
         let decrypted = manager.decrypt_email("bob", &encrypted).await.unwrap();
-        
+
         assert_eq!(decrypted, plaintext);
     }
 
@@ -679,9 +679,12 @@ mod tests {
         let manager = CryptoManager::new(dir.path().to_path_buf());
 
         manager.generate_keypair("alice", "oldpass").await.unwrap();
-        
+
         // Change password
-        manager.change_password("alice", "oldpass", "newpass").await.unwrap();
+        manager
+            .change_password("alice", "oldpass", "newpass")
+            .await
+            .unwrap();
 
         // Old password should fail
         let result = manager.unlock_keys("alice", "oldpass").await;
@@ -701,12 +704,18 @@ mod tests {
         manager.unlock_keys("alice", "pass").await.unwrap();
 
         let plaintext = b"Encrypted at rest!";
-        let (encrypted, metadata) = manager.encrypt_for_storage("alice", plaintext).await.unwrap();
+        let (encrypted, metadata) = manager
+            .encrypt_for_storage("alice", plaintext)
+            .await
+            .unwrap();
 
         assert!(metadata.encrypted);
         assert_ne!(encrypted, plaintext);
 
-        let decrypted = manager.decrypt_from_storage("alice", &encrypted, &metadata).await.unwrap();
+        let decrypted = manager
+            .decrypt_from_storage("alice", &encrypted, &metadata)
+            .await
+            .unwrap();
         assert_eq!(decrypted, plaintext);
     }
 }

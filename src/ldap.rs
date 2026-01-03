@@ -344,7 +344,11 @@ impl LdapClient {
     }
 
     /// Direct bind authentication
-    async fn authenticate_direct_bind(&self, user_dn: &str, password: &str) -> Result<bool, String> {
+    async fn authenticate_direct_bind(
+        &self,
+        user_dn: &str,
+        password: &str,
+    ) -> Result<bool, String> {
         let mut ldap = self.connect().await?;
 
         let result = ldap
@@ -357,7 +361,10 @@ impl LdapClient {
         match result.rc {
             0 => Ok(true),
             49 => Ok(false), // Invalid credentials
-            _ => Err(format!("LDAP bind failed with code {}: {}", result.rc, result.text)),
+            _ => Err(format!(
+                "LDAP bind failed with code {}: {}",
+                result.rc, result.text
+            )),
         }
     }
 
@@ -562,11 +569,7 @@ impl LdapClient {
             .and_then(|v| v.first())
             .cloned();
 
-        let groups = entry
-            .attrs
-            .get("memberOf")
-            .cloned()
-            .unwrap_or_default();
+        let groups = entry.attrs.get("memberOf").cloned().unwrap_or_default();
 
         LdapUser {
             dn: entry.dn,
@@ -589,7 +592,12 @@ impl LdapClient {
 
         // Try to get root DSE
         let (rs, _) = ldap
-            .search("", Scope::Base, "(objectClass=*)", vec!["namingContexts", "supportedLDAPVersion"])
+            .search(
+                "",
+                Scope::Base,
+                "(objectClass=*)",
+                vec!["namingContexts", "supportedLDAPVersion"],
+            )
             .await
             .map_err(|e| format!("LDAP search failed: {}", e))?
             .success()

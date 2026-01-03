@@ -10,11 +10,12 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 
 /// Group visibility/access level
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 pub enum GroupVisibility {
     /// Anyone can see and send to this group
     Public,
     /// Only members can see, anyone can send
+    #[default]
     Internal,
     /// Only members can see and send
     Private,
@@ -22,27 +23,16 @@ pub enum GroupVisibility {
     Hidden,
 }
 
-impl Default for GroupVisibility {
-    fn default() -> Self {
-        Self::Internal
-    }
-}
-
 /// Group type
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 pub enum GroupType {
     /// Distribution list - emails sent to group go to all members
+    #[default]
     DistributionList,
     /// Security group - for access control (future use)
     SecurityGroup,
     /// Alias - single email forwarding to another address
     Alias,
-}
-
-impl Default for GroupType {
-    fn default() -> Self {
-        Self::DistributionList
-    }
 }
 
 /// Group settings
@@ -151,28 +141,30 @@ impl Group {
             return false;
         }
 
-        match self.visibility {
+        // Check visibility-based permissions
+        let can_send_by_visibility = match self.visibility {
             GroupVisibility::Public => true,
             GroupVisibility::Internal | GroupVisibility::Hidden => {
-                if self.settings.allow_external {
-                    true
-                } else {
-                    self.is_member(username) || self.is_manager(username)
-                }
+                self.settings.allow_external
+                    || self.is_member(username)
+                    || self.is_manager(username)
             }
             GroupVisibility::Private => self.is_member(username),
+        };
+
+        if !can_send_by_visibility {
+            return false;
         }
-        .then(|| {
-            // Check allowed domains if configured
-            if !self.settings.allowed_domains.is_empty() {
-                if let Some(domain) = sender_domain {
-                    return self.settings.allowed_domains.iter().any(|d| d == domain);
-                }
-                return false;
+
+        // Check allowed domains if configured
+        if !self.settings.allowed_domains.is_empty() {
+            if let Some(domain) = sender_domain {
+                return self.settings.allowed_domains.iter().any(|d| d == domain);
             }
-            true
-        })
-        .unwrap_or(false)
+            return false;
+        }
+
+        true
     }
 
     /// Add a member
@@ -320,12 +312,7 @@ impl GroupManager {
     }
 
     /// Create a new group
-    pub async fn create(
-        &self,
-        name: &str,
-        email: &str,
-        owner: &str,
-    ) -> Result<Group, GroupError> {
+    pub async fn create(&self, name: &str, email: &str, owner: &str) -> Result<Group, GroupError> {
         // Validate name
         if name.is_empty() || name.len() > 64 {
             return Err(GroupError::InvalidName(
@@ -354,7 +341,10 @@ impl GroupManager {
         // Check if email is taken
         let email_map = self.email_map.read().await;
         if email_map.contains_key(&email_lower) {
-            return Err(GroupError::AlreadyExists(format!("Email {} already in use", email)));
+            return Err(GroupError::AlreadyExists(format!(
+                "Email {} already in use",
+                email
+            )));
         }
         drop(email_map);
 
@@ -363,10 +353,7 @@ impl GroupManager {
         groups.insert(name_lower.clone(), group.clone());
 
         // Update email map
-        self.email_map
-            .write()
-            .await
-            .insert(email_lower, name_lower);
+        self.email_map.write().await.insert(email_lower, name_lower);
 
         drop(groups);
         let _ = self.save().await;
@@ -413,7 +400,7 @@ impl GroupManager {
     pub async fn get_by_email(&self, email: &str) -> Option<Group> {
         let email_lower = email.to_lowercase();
         let email_map = self.email_map.read().await;
-        
+
         if let Some(name) = email_map.get(&email_lower) {
             return self.groups.read().await.get(name).cloned();
         }
@@ -522,12 +509,8 @@ impl GroupManager {
                 }
                 match g.visibility {
                     GroupVisibility::Public | GroupVisibility::Internal => true,
-                    GroupVisibility::Private => {
-                        viewer.map(|v| g.is_member(v)).unwrap_or(false)
-                    }
-                    GroupVisibility::Hidden => {
-                        viewer.map(|v| g.is_manager(v)).unwrap_or(false)
-                    }
+                    GroupVisibility::Private => viewer.map(|v| g.is_member(v)).unwrap_or(false),
+                    GroupVisibility::Hidden => viewer.map(|v| g.is_manager(v)).unwrap_or(false),
                 }
             })
             .cloned()

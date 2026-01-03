@@ -72,8 +72,8 @@ pub struct AntiVirus {
 impl AntiVirus {
     pub fn new() -> Self {
         // Check for ClamAV address from environment
-        let clamav_address = std::env::var("CLAMAV_ADDRESS")
-            .unwrap_or_else(|_| "127.0.0.1:3310".to_string());
+        let clamav_address =
+            std::env::var("CLAMAV_ADDRESS").unwrap_or_else(|_| "127.0.0.1:3310".to_string());
         let clamav_enabled = std::env::var("CLAMAV_ENABLED")
             .map(|v| v != "0" && v.to_lowercase() != "false")
             .unwrap_or(true);
@@ -90,22 +90,53 @@ impl AntiVirus {
             clamav_checked: std::sync::atomic::AtomicBool::new(false),
             blocked_extensions: vec![
                 // Executables
-                ".exe".into(), ".com".into(), ".cmd".into(), ".bat".into(),
-                ".pif".into(), ".scr".into(), ".msi".into(), ".msp".into(),
+                ".exe".into(),
+                ".com".into(),
+                ".cmd".into(),
+                ".bat".into(),
+                ".pif".into(),
+                ".scr".into(),
+                ".msi".into(),
+                ".msp".into(),
                 // Scripts
-                ".js".into(), ".jse".into(), ".vbs".into(), ".vbe".into(),
-                ".ws".into(), ".wsf".into(), ".wsc".into(), ".wsh".into(),
-                ".ps1".into(), ".psm1".into(), ".psd1".into(),
+                ".js".into(),
+                ".jse".into(),
+                ".vbs".into(),
+                ".vbe".into(),
+                ".ws".into(),
+                ".wsf".into(),
+                ".wsc".into(),
+                ".wsh".into(),
+                ".ps1".into(),
+                ".psm1".into(),
+                ".psd1".into(),
                 // Other dangerous
-                ".hta".into(), ".cpl".into(), ".msc".into(), ".jar".into(),
-                ".reg".into(), ".inf".into(), ".scf".into(), ".lnk".into(),
-                ".prf".into(), ".prg".into(), ".crt".into(),
+                ".hta".into(),
+                ".cpl".into(),
+                ".msc".into(),
+                ".jar".into(),
+                ".reg".into(),
+                ".inf".into(),
+                ".scf".into(),
+                ".lnk".into(),
+                ".prf".into(),
+                ".prg".into(),
+                ".crt".into(),
                 // Office macros
-                ".docm".into(), ".xlsm".into(), ".pptm".into(),
-                ".dotm".into(), ".xltm".into(), ".potm".into(),
-                ".xlam".into(), ".ppam".into(), ".sldm".into(),
+                ".docm".into(),
+                ".xlsm".into(),
+                ".pptm".into(),
+                ".dotm".into(),
+                ".xltm".into(),
+                ".potm".into(),
+                ".xlam".into(),
+                ".ppam".into(),
+                ".sldm".into(),
                 // Archives that can contain executables
-                ".iso".into(), ".img".into(), ".vhd".into(), ".vhdx".into(),
+                ".iso".into(),
+                ".img".into(),
+                ".vhd".into(),
+                ".vhdx".into(),
             ],
             dangerous_mime_types: vec![
                 "application/x-msdownload".into(),
@@ -143,7 +174,10 @@ impl AntiVirus {
                 ("446F63756D656E745F4F70656E", "Document_Open macro"),
                 ("576F726B626F6F6B5F4F70656E", "Workbook_Open macro"),
                 // EICAR test signature (for testing AV)
-                ("58354F2150254041505B345C505A58353428505E2937434329377D2445494341522D5354414E444152442D414E544956495255532D544553542D46494C452124482B482A", "EICAR test file"),
+                (
+                    "58354F2150254041505B345C505A58353428505E2937434329377D2445494341522D5354414E444152442D414E544956495255532D544553542D46494C452124482B482A",
+                    "EICAR test file",
+                ),
                 // Common malware patterns
                 ("636D642E657865202F63", "cmd.exe /c execution"),
                 ("706F7765727368656C6C202D", "PowerShell execution"),
@@ -151,7 +185,10 @@ impl AntiVirus {
                 ("6373637269707420", "CScript execution"),
                 // Base64 encoded "cmd" and "powershell"
                 ("59323168", "Base64 encoded 'cmd'"),
-                ("634739335A584A7A6147567362413D3D", "Base64 encoded 'powershell'"),
+                (
+                    "634739335A584A7A6147567362413D3D",
+                    "Base64 encoded 'powershell'",
+                ),
                 // Registry manipulation
                 ("5245475F535A", "Registry string value"),
                 ("484B45595F", "Registry hive reference"),
@@ -159,7 +196,10 @@ impl AntiVirus {
                 ("57696E48747470", "WinHTTP usage"),
                 ("55524C446F776E6C6F616446696C65", "URLDownloadToFile"),
                 // Ransomware indicators
-                ("596F75722066696C657320686176652062", "Ransomware message pattern"),
+                (
+                    "596F75722066696C657320686176652062",
+                    "Ransomware message pattern",
+                ),
                 ("456E637279707465642077697468", "Encryption notice"),
             ],
         }
@@ -169,10 +209,10 @@ impl AntiVirus {
     pub fn scan(&self, raw_email: &str) -> ScanResult {
         // Try async ClamAV scan in a blocking context if available
         let clamav_result = self.try_clamav_scan(raw_email.as_bytes());
-        
+
         // Run built-in scan
         let mut result = self.builtin_scan(raw_email);
-        
+
         // Merge ClamAV results if we got any
         if let Some(clamav_threats) = clamav_result {
             for threat in clamav_threats {
@@ -194,16 +234,23 @@ impl AntiVirus {
         }
 
         // Check if we've already determined ClamAV is unavailable
-        if self.clamav_checked.load(std::sync::atomic::Ordering::Relaxed) 
-            && !self.clamav_available.load(std::sync::atomic::Ordering::Relaxed) {
+        if self
+            .clamav_checked
+            .load(std::sync::atomic::Ordering::Relaxed)
+            && !self
+                .clamav_available
+                .load(std::sync::atomic::Ordering::Relaxed)
+        {
             return None;
         }
 
         // Try to connect and scan
         match self.clamav_scan_sync(data) {
             Ok(threats) => {
-                self.clamav_checked.store(true, std::sync::atomic::Ordering::Relaxed);
-                self.clamav_available.store(true, std::sync::atomic::Ordering::Relaxed);
+                self.clamav_checked
+                    .store(true, std::sync::atomic::Ordering::Relaxed);
+                self.clamav_available
+                    .store(true, std::sync::atomic::Ordering::Relaxed);
                 if threats.is_empty() {
                     None
                 } else {
@@ -212,10 +259,15 @@ impl AntiVirus {
             }
             Err(e) => {
                 // Only log once when we first detect ClamAV is unavailable
-                if !self.clamav_checked.load(std::sync::atomic::Ordering::Relaxed) {
+                if !self
+                    .clamav_checked
+                    .load(std::sync::atomic::Ordering::Relaxed)
+                {
                     tracing::info!("ClamAV not available ({}), using built-in scanner", e);
-                    self.clamav_checked.store(true, std::sync::atomic::Ordering::Relaxed);
-                    self.clamav_available.store(false, std::sync::atomic::Ordering::Relaxed);
+                    self.clamav_checked
+                        .store(true, std::sync::atomic::Ordering::Relaxed);
+                    self.clamav_available
+                        .store(false, std::sync::atomic::Ordering::Relaxed);
                 }
                 None
             }
@@ -228,35 +280,40 @@ impl AntiVirus {
         use std::net::TcpStream;
 
         let timeout = Duration::from_secs(self.clamav_config.timeout_secs);
-        
+
         // Connect to ClamAV
         let mut stream = TcpStream::connect(&self.clamav_config.address)
             .map_err(|e| format!("Connection failed: {}", e))?;
-        
+
         stream.set_read_timeout(Some(timeout)).ok();
         stream.set_write_timeout(Some(timeout)).ok();
 
         // Send INSTREAM command
-        stream.write_all(b"zINSTREAM\0")
+        stream
+            .write_all(b"zINSTREAM\0")
             .map_err(|e| format!("Write failed: {}", e))?;
 
         // Send data in chunks (ClamAV protocol: 4-byte big-endian length + data)
         let chunk_size = 4096;
         for chunk in data.chunks(chunk_size) {
             let len = (chunk.len() as u32).to_be_bytes();
-            stream.write_all(&len)
+            stream
+                .write_all(&len)
                 .map_err(|e| format!("Write length failed: {}", e))?;
-            stream.write_all(chunk)
+            stream
+                .write_all(chunk)
                 .map_err(|e| format!("Write chunk failed: {}", e))?;
         }
 
         // Send zero-length chunk to indicate end
-        stream.write_all(&[0, 0, 0, 0])
+        stream
+            .write_all(&[0, 0, 0, 0])
             .map_err(|e| format!("Write end failed: {}", e))?;
 
         // Read response
         let mut response = Vec::new();
-        stream.read_to_end(&mut response)
+        stream
+            .read_to_end(&mut response)
             .map_err(|e| format!("Read failed: {}", e))?;
 
         let response_str = String::from_utf8_lossy(&response);
@@ -265,7 +322,7 @@ impl AntiVirus {
         // Parse response
         // Format: "stream: OK" or "stream: VirusName FOUND"
         let mut threats = Vec::new();
-        
+
         for line in response_str.lines() {
             let line = line.trim();
             if line.ends_with("FOUND") {
@@ -294,21 +351,30 @@ impl AntiVirus {
         if !self.clamav_config.enabled {
             return false;
         }
-        
-        if self.clamav_checked.load(std::sync::atomic::Ordering::Relaxed) {
-            return self.clamav_available.load(std::sync::atomic::Ordering::Relaxed);
+
+        if self
+            .clamav_checked
+            .load(std::sync::atomic::Ordering::Relaxed)
+        {
+            return self
+                .clamav_available
+                .load(std::sync::atomic::Ordering::Relaxed);
         }
 
         // Try a PING command
         match self.clamav_ping() {
             Ok(_) => {
-                self.clamav_checked.store(true, std::sync::atomic::Ordering::Relaxed);
-                self.clamav_available.store(true, std::sync::atomic::Ordering::Relaxed);
+                self.clamav_checked
+                    .store(true, std::sync::atomic::Ordering::Relaxed);
+                self.clamav_available
+                    .store(true, std::sync::atomic::Ordering::Relaxed);
                 true
             }
             Err(_) => {
-                self.clamav_checked.store(true, std::sync::atomic::Ordering::Relaxed);
-                self.clamav_available.store(false, std::sync::atomic::Ordering::Relaxed);
+                self.clamav_checked
+                    .store(true, std::sync::atomic::Ordering::Relaxed);
+                self.clamav_available
+                    .store(false, std::sync::atomic::Ordering::Relaxed);
                 false
             }
         }
@@ -320,18 +386,20 @@ impl AntiVirus {
         use std::net::TcpStream;
 
         let timeout = Duration::from_secs(5);
-        
+
         let mut stream = TcpStream::connect(&self.clamav_config.address)
             .map_err(|e| format!("Connection failed: {}", e))?;
-        
+
         stream.set_read_timeout(Some(timeout)).ok();
         stream.set_write_timeout(Some(timeout)).ok();
 
-        stream.write_all(b"zPING\0")
+        stream
+            .write_all(b"zPING\0")
             .map_err(|e| format!("Write failed: {}", e))?;
 
         let mut response = [0u8; 64];
-        let n = stream.read(&mut response)
+        let n = stream
+            .read(&mut response)
             .map_err(|e| format!("Read failed: {}", e))?;
 
         let response_str = String::from_utf8_lossy(&response[..n]);
@@ -352,7 +420,7 @@ impl AntiVirus {
         }
 
         let timeout = Duration::from_secs(5);
-        
+
         let mut stream = TcpStream::connect(&self.clamav_config.address).ok()?;
         stream.set_read_timeout(Some(timeout)).ok();
         stream.set_write_timeout(Some(timeout)).ok();
@@ -366,7 +434,7 @@ impl AntiVirus {
             .trim_matches('\0')
             .trim()
             .to_string();
-        
+
         if version.is_empty() {
             None
         } else {
@@ -448,11 +516,13 @@ impl AntiVirus {
         attachments
     }
 
+    #[allow(clippy::manual_strip)]
     fn extract_boundary(&self, email: &str) -> Option<String> {
         // Look for boundary in Content-Type header
         if let Some(ct_start) = email.find("content-type:") {
             let ct_section = &email[ct_start..];
-            let ct_end = ct_section.find("\r\n\r\n")
+            let ct_end = ct_section
+                .find("\r\n\r\n")
                 .or_else(|| ct_section.find("\n\n"))
                 .unwrap_or(ct_section.len().min(500));
             let ct_header = &ct_section[..ct_end];
@@ -484,7 +554,8 @@ impl AntiVirus {
         // Check if this is an attachment
         let is_attachment = part_lower.contains("content-disposition: attachment")
             || part_lower.contains("content-disposition:attachment")
-            || (part_lower.contains("filename=") && !part_lower.contains("content-type: text/plain"));
+            || (part_lower.contains("filename=")
+                && !part_lower.contains("content-type: text/plain"));
 
         // Extract filename
         let filename = self.extract_filename(part);
@@ -507,6 +578,7 @@ impl AntiVirus {
         })
     }
 
+    #[allow(clippy::manual_strip)]
     fn extract_filename(&self, part: &str) -> Option<String> {
         let part_lower = part.to_lowercase();
 
@@ -514,7 +586,9 @@ impl AntiVirus {
         if let Some(pos) = part_lower.find("filename=") {
             let after_filename = &part[pos + 9..];
             let filename = if after_filename.starts_with('"') {
-                after_filename[1..].find('"').map(|end| &after_filename[1..end + 1])
+                after_filename[1..]
+                    .find('"')
+                    .map(|end| &after_filename[1..end + 1])
             } else {
                 after_filename
                     .find(|c: char| c.is_whitespace() || c == ';' || c == '\r' || c == '\n')
@@ -539,6 +613,7 @@ impl AntiVirus {
         None
     }
 
+    #[allow(clippy::manual_pattern_char_comparison)]
     fn extract_content_type(&self, part_lower: &str) -> Option<String> {
         if let Some(pos) = part_lower.find("content-type:") {
             let after_ct = &part_lower[pos + 13..];
@@ -554,7 +629,8 @@ impl AntiVirus {
         let part_lower = part.to_lowercase();
 
         // Find the body (after double newline)
-        let body_start = part.find("\r\n\r\n")
+        let body_start = part
+            .find("\r\n\r\n")
             .map(|p| p + 4)
             .or_else(|| part.find("\n\n").map(|p| p + 2))?;
 
@@ -565,10 +641,7 @@ impl AntiVirus {
             || part_lower.contains("content-transfer-encoding:base64")
         {
             // Decode base64
-            let cleaned: String = body
-                .chars()
-                .filter(|c| !c.is_whitespace())
-                .collect();
+            let cleaned: String = body.chars().filter(|c| !c.is_whitespace()).collect();
 
             base64::engine::general_purpose::STANDARD
                 .decode(&cleaned)
@@ -607,12 +680,13 @@ impl AntiVirus {
 
         // Check for Unicode tricks in filename
         if attachment.filename.chars().any(|c| {
-            matches!(c,
+            matches!(
+                c,
                 '\u{202E}' | // Right-to-left override
                 '\u{200B}' | // Zero-width space
                 '\u{200C}' | // Zero-width non-joiner
                 '\u{200D}' | // Zero-width joiner
-                '\u{FEFF}'   // Zero-width no-break space
+                '\u{FEFF}' // Zero-width no-break space
             )
         }) {
             result.add_threat(format!(
@@ -673,7 +747,8 @@ impl AntiVirus {
 
     fn scan_content(&self, content: &[u8], filename: &str, result: &mut ScanResult) {
         // Convert to hex for signature matching
-        let hex_content: String = content.iter()
+        let hex_content: String = content
+            .iter()
             .take(8192) // Only scan first 8KB for signatures
             .map(|b| format!("{:02X}", b))
             .collect();
@@ -788,10 +863,15 @@ impl AntiVirus {
         let email_lower = raw_email.to_lowercase();
 
         // Check for password-protected archives (often used to evade scanning)
-        if (email_lower.contains(".zip") || email_lower.contains(".rar") || email_lower.contains(".7z"))
-            && (email_lower.contains("password") || email_lower.contains("passwort") || email_lower.contains("contraseña"))
+        if (email_lower.contains(".zip")
+            || email_lower.contains(".rar")
+            || email_lower.contains(".7z"))
+            && (email_lower.contains("password")
+                || email_lower.contains("passwort")
+                || email_lower.contains("contraseña"))
         {
-            result.add_threat("Password-protected archive mentioned (potential evasion)".to_string());
+            result
+                .add_threat("Password-protected archive mentioned (potential evasion)".to_string());
         }
 
         // Check for deeply nested archives (zip bomb indicator)
@@ -830,7 +910,8 @@ impl AntiVirus {
     pub fn set_clamav_address(&mut self, address: String) {
         self.clamav_config.address = address;
         // Reset availability check
-        self.clamav_checked.store(false, std::sync::atomic::Ordering::Relaxed);
+        self.clamav_checked
+            .store(false, std::sync::atomic::Ordering::Relaxed);
     }
 
     /// Enable or disable ClamAV

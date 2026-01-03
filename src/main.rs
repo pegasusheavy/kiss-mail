@@ -3,6 +3,10 @@
 //! A dead-simple SMTP, IMAP, and POP3 mail server.
 //! Just run it. That's it.
 
+// Allow dead code for public API items that may be used by external consumers
+// or are reserved for future features
+#![allow(dead_code)]
+
 mod admin;
 mod admin_api;
 mod admin_web;
@@ -23,7 +27,7 @@ use std::env;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use admin::{format_result, AdminHandler};
+use admin::{AdminHandler, format_result};
 use admin_api::{AdminApiConfig, ApiState, RemoteClient};
 use admin_web::WebAdminConfig;
 use antispam::AntiSpam;
@@ -37,7 +41,7 @@ use users::{UserManager, UserRole};
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = env::args().collect();
-    
+
     // Handle CLI commands
     if args.len() > 1 {
         return handle_cli(&args).await;
@@ -94,9 +98,11 @@ async fn run_server() -> Result<(), Box<dyn std::error::Error>> {
     let first_run = !user_manager.user_exists("admin").await;
     if first_run {
         let password = generate_simple_password();
-        let _ = user_manager.create_user("admin", &password, Some(UserRole::SuperAdmin)).await;
+        let _ = user_manager
+            .create_user("admin", &password, Some(UserRole::SuperAdmin))
+            .await;
         let _ = user_manager.save().await;
-        
+
         println!();
         println!("🎉 First run detected! Created admin account:");
         println!("   Username: admin");
@@ -116,9 +122,18 @@ async fn run_server() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     // Allow env override
-    let smtp_port = env::var("SMTP_PORT").ok().and_then(|p| p.parse().ok()).unwrap_or(smtp_port);
-    let imap_port = env::var("IMAP_PORT").ok().and_then(|p| p.parse().ok()).unwrap_or(imap_port);
-    let pop3_port = env::var("POP3_PORT").ok().and_then(|p| p.parse().ok()).unwrap_or(pop3_port);
+    let smtp_port = env::var("SMTP_PORT")
+        .ok()
+        .and_then(|p| p.parse().ok())
+        .unwrap_or(smtp_port);
+    let imap_port = env::var("IMAP_PORT")
+        .ok()
+        .and_then(|p| p.parse().ok())
+        .unwrap_or(imap_port);
+    let pop3_port = env::var("POP3_PORT")
+        .ok()
+        .and_then(|p| p.parse().ok())
+        .unwrap_or(pop3_port);
 
     // Initialize groups
     let group_manager = Arc::new(GroupManager::new(data_dir.clone()));
@@ -173,7 +188,24 @@ async fn run_server() -> Result<(), Box<dyn std::error::Error>> {
     let web_enabled = web_config.enabled;
 
     // Print startup info
-    print_banner(&domain, smtp_port, imap_port, pop3_port, api_port, api_enabled, web_port, web_enabled, &user_manager, &group_manager, &ldap_client, &sso_manager, &antispam, &antivirus, &crypto_manager).await;
+    print_banner(
+        &domain,
+        smtp_port,
+        imap_port,
+        pop3_port,
+        api_port,
+        api_enabled,
+        web_port,
+        web_enabled,
+        &user_manager,
+        &group_manager,
+        &ldap_client,
+        &sso_manager,
+        &antispam,
+        &antivirus,
+        &crypto_manager,
+    )
+    .await;
 
     // Create API state
     let api_state = ApiState {
@@ -191,13 +223,13 @@ async fn run_server() -> Result<(), Box<dyn std::error::Error>> {
 
     // Run servers
     tokio::select! {
-        r = smtp_server.run(&smtp_addr) => { 
+        r = smtp_server.run(&smtp_addr) => {
             if let Err(e) = r { tracing::error!("SMTP error: {}", e); }
         }
-        r = imap_server.run(&imap_addr) => { 
+        r = imap_server.run(&imap_addr) => {
             if let Err(e) = r { tracing::error!("IMAP error: {}", e); }
         }
-        r = pop3_server.run(&pop3_addr) => { 
+        r = pop3_server.run(&pop3_addr) => {
             if let Err(e) = r { tracing::error!("POP3 error: {}", e); }
         }
         r = admin_api::run_api_server(api_state) => {
@@ -224,7 +256,7 @@ async fn handle_cli(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
     let mut api_key: Option<String> = None;
     let mut remaining_args: Vec<String> = Vec::new();
     let mut skip_next = false;
-    
+
     for (i, arg) in args.iter().enumerate().skip(1) {
         if skip_next {
             skip_next = false;
@@ -260,7 +292,7 @@ async fn handle_cli(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
     if let Some(srv) = server {
         return handle_remote_cli(&srv, api_key, cmd, &cmd_args).await;
     }
-    
+
     match cmd {
         "help" | "--help" | "-h" => {
             print_help();
@@ -335,11 +367,25 @@ async fn handle_remote_cli(
                     println!("  Domain:      {}", status.domain);
                     println!("  Users:       {}", status.users);
                     println!("  Groups:      {}", status.groups);
-                    println!("  LDAP:        {}", if status.ldap_enabled { "Enabled" } else { "Disabled" });
+                    println!(
+                        "  LDAP:        {}",
+                        if status.ldap_enabled {
+                            "Enabled"
+                        } else {
+                            "Disabled"
+                        }
+                    );
                     if let Some(provider) = status.sso_provider {
                         println!("  SSO:         {} enabled", provider);
                     } else {
-                        println!("  SSO:         {}", if status.sso_enabled { "Enabled" } else { "Disabled" });
+                        println!(
+                            "  SSO:         {}",
+                            if status.sso_enabled {
+                                "Enabled"
+                            } else {
+                                "Disabled"
+                            }
+                        );
                     }
                 }
                 Err(e) => {
@@ -456,7 +502,10 @@ async fn handle_remote_cli(
             let email = args.get(1).map(|s| s.as_str()).unwrap_or(&args[0]);
             match client.create_group(&args[0], email).await {
                 Ok(group) => {
-                    println!("✓ Created group '{}' with email '{}'", group.name, group.email);
+                    println!(
+                        "✓ Created group '{}' with email '{}'",
+                        group.name, group.email
+                    );
                 }
                 Err(e) => {
                     eprintln!("Error: {}", e);
@@ -547,7 +596,7 @@ async fn run_admin(cmd: &str, args: &[String]) -> Result<(), Box<dyn std::error:
         .unwrap_or_else(|| "localhost".to_string());
 
     let user_manager = Arc::new(UserManager::new(domain, data_dir.clone()));
-    
+
     // Load existing data
     if let Err(e) = user_manager.load().await {
         eprintln!("Note: Could not load existing users: {}", e);
@@ -555,7 +604,10 @@ async fn run_admin(cmd: &str, args: &[String]) -> Result<(), Box<dyn std::error:
 
     // Bootstrap admin if needed
     if !user_manager.user_exists("admin").await {
-        match user_manager.create_user("admin", "changeme", Some(UserRole::SuperAdmin)).await {
+        match user_manager
+            .create_user("admin", "changeme", Some(UserRole::SuperAdmin))
+            .await
+        {
             Ok(_) => { /* create_user already saves */ }
             Err(e) => eprintln!("Warning: Could not create admin: {}", e),
         }
@@ -567,7 +619,7 @@ async fn run_admin(cmd: &str, args: &[String]) -> Result<(), Box<dyn std::error:
     let handler = AdminHandler::new(Arc::clone(&storage));
     let cmd_args: Vec<&str> = args.iter().map(|s| s.as_str()).collect();
     let result = handler.execute(cmd, &cmd_args, "admin").await;
-    
+
     println!("{}", format_result(&result));
 
     // Save all changes
@@ -608,7 +660,7 @@ async fn run_group_cmd(cmd: &str, args: &[String]) -> Result<(), Box<dyn std::er
             }
         }
         "create" => {
-            if args.len() < 1 {
+            if args.is_empty() {
                 eprintln!("Usage: kiss-mail group-add <name> [email]");
                 std::process::exit(1);
             }
@@ -622,7 +674,7 @@ async fn run_group_cmd(cmd: &str, args: &[String]) -> Result<(), Box<dyn std::er
             } else {
                 email.to_string()
             };
-            
+
             match group_manager.create(name, &email, "admin").await {
                 Ok(g) => println!("Created group '{}' with email '{}'", g.name, g.email),
                 Err(e) => eprintln!("Error: {}", e),
@@ -681,7 +733,10 @@ async fn run_group_cmd(cmd: &str, args: &[String]) -> Result<(), Box<dyn std::er
                 eprintln!("Usage: kiss-mail group-rm-member <group> <user>");
                 std::process::exit(1);
             }
-            match group_manager.remove_member(&args[0], &args[1], "admin").await {
+            match group_manager
+                .remove_member(&args[0], &args[1], "admin")
+                .await
+            {
                 Ok(()) => println!("Removed '{}' from group '{}'", args[1], args[0]),
                 Err(e) => eprintln!("Error: {}", e),
             }
@@ -696,7 +751,7 @@ async fn run_group_cmd(cmd: &str, args: &[String]) -> Result<(), Box<dyn std::er
 
 async fn run_ldap_cmd(cmd: &str, args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
     let ldap_client = LdapClient::from_env();
-    
+
     if !ldap_client.is_enabled() {
         println!("LDAP is not configured.");
         println!();
@@ -716,9 +771,18 @@ async fn run_ldap_cmd(cmd: &str, args: &[String]) -> Result<(), Box<dyn std::err
             let status = ldap_client.status();
             println!("  URL:      {}", status.url);
             println!("  Base DN:  {}", status.base_dn);
-            println!("  TLS:      {}", if status.use_tls { "Yes" } else if status.use_starttls { "StartTLS" } else { "No" });
+            println!(
+                "  TLS:      {}",
+                if status.use_tls {
+                    "Yes"
+                } else if status.use_starttls {
+                    "StartTLS"
+                } else {
+                    "No"
+                }
+            );
             println!();
-            
+
             match ldap_client.test_connection().await {
                 Ok(msg) => {
                     println!("✓ {}", msg);
@@ -736,14 +800,17 @@ async fn run_ldap_cmd(cmd: &str, args: &[String]) -> Result<(), Box<dyn std::err
             }
             let username = &args[0];
             let password = &args[1];
-            
+
             println!("Authenticating {} via LDAP...", username);
             match ldap_client.authenticate(username, password).await {
                 ldap::LdapAuthResult::Success(user) => {
                     println!("✓ Authentication successful!");
                     println!("  DN:      {}", user.dn);
                     println!("  Email:   {}", user.email.as_deref().unwrap_or("(none)"));
-                    println!("  Name:    {}", user.display_name.as_deref().unwrap_or("(none)"));
+                    println!(
+                        "  Name:    {}",
+                        user.display_name.as_deref().unwrap_or("(none)")
+                    );
                     if !user.groups.is_empty() {
                         println!("  Groups:  {}", user.groups.len());
                         for g in user.groups.iter().take(5) {
@@ -778,7 +845,7 @@ async fn run_ldap_cmd(cmd: &str, args: &[String]) -> Result<(), Box<dyn std::err
                 std::process::exit(1);
             }
             let username = &args[0];
-            
+
             println!("Searching for {} in LDAP...", username);
             match ldap_client.get_user(username).await {
                 Ok(Some(user)) => {
@@ -786,7 +853,10 @@ async fn run_ldap_cmd(cmd: &str, args: &[String]) -> Result<(), Box<dyn std::err
                     println!("  DN:       {}", user.dn);
                     println!("  Username: {}", user.username);
                     println!("  Email:    {}", user.email.as_deref().unwrap_or("(none)"));
-                    println!("  Name:     {}", user.display_name.as_deref().unwrap_or("(none)"));
+                    println!(
+                        "  Name:     {}",
+                        user.display_name.as_deref().unwrap_or("(none)")
+                    );
                 }
                 Ok(None) => {
                     println!("User '{}' not found in LDAP", username);
@@ -819,10 +889,20 @@ async fn run_sso_cmd(cmd: &str, args: &[String]) -> Result<(), Box<dyn std::erro
         "status" => {
             let status = sso_manager.status();
             println!("SSO Status:");
-            println!("  Enabled:        {}", if status.enabled { "Yes" } else { "No" });
+            println!(
+                "  Enabled:        {}",
+                if status.enabled { "Yes" } else { "No" }
+            );
             if status.enabled {
                 println!("  Provider:       {}", status.provider_name);
-                println!("  App Passwords:  {}", if status.allow_app_passwords { "Allowed" } else { "Disabled" });
+                println!(
+                    "  App Passwords:  {}",
+                    if status.allow_app_passwords {
+                        "Allowed"
+                    } else {
+                        "Disabled"
+                    }
+                );
             } else {
                 println!();
                 println!("To enable SSO, set provider environment variables:");
@@ -854,15 +934,20 @@ async fn run_sso_cmd(cmd: &str, args: &[String]) -> Result<(), Box<dyn std::erro
             }
             let username = &args[0];
             let label = args.get(1).map(|s| s.as_str()).unwrap_or("Mail Client");
-            
-            match sso_manager.generate_app_password(username, label, None).await {
+
+            match sso_manager
+                .generate_app_password(username, label, None)
+                .await
+            {
                 Ok(password) => {
                     println!("✓ Generated app password for '{}'", username);
                     println!();
                     println!("  Label:    {}", label);
                     println!("  Password: {}", password);
                     println!();
-                    println!("  Use this password in your email client instead of your SSO password.");
+                    println!(
+                        "  Use this password in your email client instead of your SSO password."
+                    );
                     println!("  Store it securely - it won't be shown again!");
                 }
                 Err(e) => {
@@ -878,7 +963,7 @@ async fn run_sso_cmd(cmd: &str, args: &[String]) -> Result<(), Box<dyn std::erro
             }
             let username = &args[0];
             let passwords = sso_manager.list_app_passwords(username).await;
-            
+
             if passwords.is_empty() {
                 println!("No app passwords for '{}'", username);
             } else {
@@ -893,10 +978,11 @@ async fn run_sso_cmd(cmd: &str, args: &[String]) -> Result<(), Box<dyn std::erro
                     } else {
                         ""
                     };
-                    let last_used = pw.last_used
+                    let last_used = pw
+                        .last_used
                         .map(|d| d.format("%Y-%m-%d %H:%M").to_string())
                         .unwrap_or_else(|| "Never".to_string());
-                    println!("  {} - {}{}", pw.id[..8].to_string(), pw.label, status);
+                    println!("  {} - {}{}", &pw.id[..8], pw.label, status);
                     println!("    Created:   {}", pw.created_at.format("%Y-%m-%d %H:%M"));
                     println!("    Last used: {}", last_used);
                 }
@@ -909,7 +995,7 @@ async fn run_sso_cmd(cmd: &str, args: &[String]) -> Result<(), Box<dyn std::erro
             }
             let username = &args[0];
             let password_id = &args[1];
-            
+
             if sso_manager.revoke_app_password(username, password_id).await {
                 println!("✓ Revoked app password");
             } else {
@@ -925,7 +1011,24 @@ async fn run_sso_cmd(cmd: &str, args: &[String]) -> Result<(), Box<dyn std::erro
     Ok(())
 }
 
-async fn print_banner(domain: &str, smtp: u16, imap: u16, pop3: u16, api_port: u16, api_enabled: bool, web_port: u16, web_enabled: bool, um: &UserManager, gm: &GroupManager, ldap: &LdapClient, sso: &SsoManager, antispam: &AntiSpam, av: &AntiVirus, crypto: &crypto::CryptoManager) {
+#[allow(clippy::too_many_arguments)]
+async fn print_banner(
+    domain: &str,
+    smtp: u16,
+    imap: u16,
+    pop3: u16,
+    api_port: u16,
+    api_enabled: bool,
+    web_port: u16,
+    web_enabled: bool,
+    um: &UserManager,
+    gm: &GroupManager,
+    ldap: &LdapClient,
+    sso: &SsoManager,
+    antispam: &AntiSpam,
+    av: &AntiVirus,
+    crypto: &crypto::CryptoManager,
+) {
     let stats = um.get_stats().await;
     let group_stats = gm.get_stats().await;
     let ldap_status = ldap.status();
@@ -934,7 +1037,7 @@ async fn print_banner(domain: &str, smtp: u16, imap: u16, pop3: u16, api_port: u
     let ai_stats = antispam.ai_stats().await;
     let crypto_status = crypto.status();
     let crypto_stats = crypto.stats().await;
-    
+
     println!();
     println!("  ╦╔═╦╔══╗  ╔╦╗╔═╗╦╦  ");
     println!("  ╠╩╗║╚═╗╚═╗║║║╠═╣║║  ");
@@ -957,29 +1060,48 @@ async fn print_banner(domain: &str, smtp: u16, imap: u16, pop3: u16, api_port: u
     }
     println!();
     println!("  Security:");
-    println!("    Anti-spam   ✓ Rules + AI ({} patterns learned)", ai_stats.total_tokens);
+    println!(
+        "    Anti-spam   ✓ Rules + AI ({} patterns learned)",
+        ai_stats.total_tokens
+    );
     if av_status.clamav_available {
-        println!("    Anti-virus  ✓ ClamAV {}", av_status.clamav_version.as_deref().unwrap_or(""));
+        println!(
+            "    Anti-virus  ✓ ClamAV {}",
+            av_status.clamav_version.as_deref().unwrap_or("")
+        );
     } else if av_status.clamav_enabled {
         println!("    Anti-virus  ✓ Built-in (ClamAV not found)");
     } else {
         println!("    Anti-virus  ✓ Built-in");
     }
     if crypto_status.enabled {
-        println!("    Encryption  ✓ {} ({} keys)", crypto_status.algorithm, crypto_stats.total_keys);
+        println!(
+            "    Encryption  ✓ {} ({} keys)",
+            crypto_status.algorithm, crypto_stats.total_keys
+        );
     } else {
         println!("    Encryption  ✗ Disabled (set KISS_MAIL_ENCRYPTION=true)");
     }
     println!();
     println!("  Identity:");
     if ldap_status.enabled {
-        let tls = if ldap_status.use_tls { " (TLS)" } else if ldap_status.use_starttls { " (StartTLS)" } else { "" };
+        let tls = if ldap_status.use_tls {
+            " (TLS)"
+        } else if ldap_status.use_starttls {
+            " (StartTLS)"
+        } else {
+            ""
+        };
         println!("    LDAP        ✓ {}{}", ldap_status.url, tls);
     } else {
         println!("    LDAP        ✗ Not configured");
     }
     if sso_status.enabled {
-        let app_pw = if sso_status.allow_app_passwords { " + app passwords" } else { "" };
+        let app_pw = if sso_status.allow_app_passwords {
+            " + app passwords"
+        } else {
+            ""
+        };
         println!("    SSO         ✓ {}{}", sso_status.provider_name, app_pw);
     } else {
         println!("    SSO         ✗ Not configured");
@@ -987,7 +1109,10 @@ async fn print_banner(domain: &str, smtp: u16, imap: u16, pop3: u16, api_port: u
     println!();
     if api_enabled {
         println!("  Remote CLI:");
-        println!("    kiss-mail --server localhost:{} --api-key <key> <cmd>", api_port);
+        println!(
+            "    kiss-mail --server localhost:{} --api-key <key> <cmd>",
+            api_port
+        );
         println!();
     }
     println!("  Quick commands:");
@@ -1001,7 +1126,8 @@ async fn print_banner(domain: &str, smtp: u16, imap: u16, pop3: u16, api_port: u
 }
 
 fn print_help() {
-    println!(r#"
+    println!(
+        r#"
 KISS Mail - Simple Email Server
 
 USAGE:
@@ -1134,15 +1260,20 @@ CONNECTING:
       Username: your_username
       Password: your_password
       Security: None (or STARTTLS if configured)
-"#, smtp = 2525, imap = 1143, pop3 = 1100);
+"#,
+        smtp = 2525,
+        imap = 1143,
+        pop3 = 1100
+    );
 }
 
 fn generate_simple_password() -> String {
     use rand::Rng;
-    let words = ["apple", "banana", "cherry", "dragon", "eagle", "forest", 
-                 "guitar", "hammer", "island", "jungle", "knight", "lemon",
-                 "mango", "north", "ocean", "piano", "queen", "river",
-                 "silver", "tiger", "umbrella", "violet", "winter", "yellow"];
+    let words = [
+        "apple", "banana", "cherry", "dragon", "eagle", "forest", "guitar", "hammer", "island",
+        "jungle", "knight", "lemon", "mango", "north", "ocean", "piano", "queen", "river",
+        "silver", "tiger", "umbrella", "violet", "winter", "yellow",
+    ];
     let mut rng = rand::rng();
     let w1 = words[rng.random_range(0..words.len())];
     let w2 = words[rng.random_range(0..words.len())];

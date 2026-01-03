@@ -3,7 +3,7 @@
 //! A simple web-based admin dashboard using Actix-web and Handlebars.
 //! Styled with Tailwind CSS from CDN.
 
-use actix_web::{web, HttpRequest, HttpResponse, cookie::Cookie};
+use actix_web::{HttpRequest, HttpResponse, cookie::Cookie, web};
 use handlebars::Handlebars;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -648,15 +648,11 @@ struct GroupView {
 
 /// Get session user from cookie
 fn get_session_user(req: &HttpRequest) -> Option<String> {
-    req.cookie("kiss_session")
-        .map(|c| c.value().to_string())
+    req.cookie("kiss_session").map(|c| c.value().to_string())
 }
 
 /// Login page
-pub async fn login_page(
-    data: web::Data<WebState>,
-    req: HttpRequest,
-) -> HttpResponse {
+pub async fn login_page(data: web::Data<WebState>, req: HttpRequest) -> HttpResponse {
     // Already logged in?
     if get_session_user(&req).is_some() {
         return HttpResponse::Found()
@@ -664,9 +660,15 @@ pub async fn login_page(
             .finish();
     }
 
-    let body = data.hbs.render("login", &json!({
-        "version": env!("CARGO_PKG_VERSION"),
-    })).unwrap_or_else(|e| format!("Template error: {}", e));
+    let body = data
+        .hbs
+        .render(
+            "login",
+            &json!({
+                "version": env!("CARGO_PKG_VERSION"),
+            }),
+        )
+        .unwrap_or_else(|e| format!("Template error: {}", e));
 
     HttpResponse::Ok()
         .content_type("text/html; charset=utf-8")
@@ -674,18 +676,25 @@ pub async fn login_page(
 }
 
 /// Handle login
-pub async fn login_submit(
-    data: web::Data<WebState>,
-    form: web::Form<LoginForm>,
-) -> HttpResponse {
-    match data.user_manager.authenticate(&form.username, &form.password, "web", "admin-web").await {
+pub async fn login_submit(data: web::Data<WebState>, form: web::Form<LoginForm>) -> HttpResponse {
+    match data
+        .user_manager
+        .authenticate(&form.username, &form.password, "web", "admin-web")
+        .await
+    {
         Ok(user) => {
             // Check if admin
             if !matches!(user.role, UserRole::Admin | UserRole::SuperAdmin) {
-                let body = data.hbs.render("login", &json!({
-                    "version": env!("CARGO_PKG_VERSION"),
-                    "error": "Admin access required",
-                })).unwrap_or_default();
+                let body = data
+                    .hbs
+                    .render(
+                        "login",
+                        &json!({
+                            "version": env!("CARGO_PKG_VERSION"),
+                            "error": "Admin access required",
+                        }),
+                    )
+                    .unwrap_or_default();
                 return HttpResponse::Ok()
                     .content_type("text/html; charset=utf-8")
                     .body(body);
@@ -703,10 +712,16 @@ pub async fn login_submit(
                 .finish()
         }
         Err(_) => {
-            let body = data.hbs.render("login", &json!({
-                "version": env!("CARGO_PKG_VERSION"),
-                "error": "Invalid username or password",
-            })).unwrap_or_default();
+            let body = data
+                .hbs
+                .render(
+                    "login",
+                    &json!({
+                        "version": env!("CARGO_PKG_VERSION"),
+                        "error": "Invalid username or password",
+                    }),
+                )
+                .unwrap_or_default();
             HttpResponse::Ok()
                 .content_type("text/html; charset=utf-8")
                 .body(body)
@@ -728,13 +743,14 @@ pub async fn logout() -> HttpResponse {
 }
 
 /// Dashboard
-pub async fn dashboard(
-    data: web::Data<WebState>,
-    req: HttpRequest,
-) -> HttpResponse {
+pub async fn dashboard(data: web::Data<WebState>, req: HttpRequest) -> HttpResponse {
     let username = match get_session_user(&req) {
         Some(u) => u,
-        None => return HttpResponse::Found().append_header(("Location", "/admin/login")).finish(),
+        None => {
+            return HttpResponse::Found()
+                .append_header(("Location", "/admin/login"))
+                .finish();
+        }
     };
 
     let users = data.user_manager.list_users().await;
@@ -742,75 +758,121 @@ pub async fn dashboard(
     let ldap_status = data.ldap_client.status();
     let sso_status = data.sso_manager.status();
 
-    let active_users = users.iter().filter(|u| format!("{:?}", u.status) == "Active").count();
-    let admins = users.iter().filter(|u| matches!(u.role, UserRole::Admin | UserRole::SuperAdmin)).count();
+    let active_users = users
+        .iter()
+        .filter(|u| format!("{:?}", u.status) == "Active")
+        .count();
+    let admins = users
+        .iter()
+        .filter(|u| matches!(u.role, UserRole::Admin | UserRole::SuperAdmin))
+        .count();
 
-    let content = data.hbs.render("dashboard", &json!({
-        "domain": data.domain,
-        "stats": {
-            "users": users.len(),
-            "groups": groups.len(),
-            "active_users": active_users,
-            "admins": admins,
-        },
-        "ldap_enabled": ldap_status.enabled,
-        "sso_enabled": sso_status.enabled,
-        "sso_provider": sso_status.provider_name,
-        "version": env!("CARGO_PKG_VERSION"),
-    })).unwrap_or_default();
+    let content = data
+        .hbs
+        .render(
+            "dashboard",
+            &json!({
+                "domain": data.domain,
+                "stats": {
+                    "users": users.len(),
+                    "groups": groups.len(),
+                    "active_users": active_users,
+                    "admins": admins,
+                },
+                "ldap_enabled": ldap_status.enabled,
+                "sso_enabled": sso_status.enabled,
+                "sso_provider": sso_status.provider_name,
+                "version": env!("CARGO_PKG_VERSION"),
+            }),
+        )
+        .unwrap_or_default();
 
-    render_page(&data.hbs, "Dashboard", &username, &content, true, false, false, None, None)
+    render_page(
+        &data.hbs,
+        "Dashboard",
+        &username,
+        &content,
+        true,
+        false,
+        false,
+        None,
+        None,
+    )
 }
 
 /// Users list
-pub async fn users_list(
-    data: web::Data<WebState>,
-    req: HttpRequest,
-) -> HttpResponse {
+pub async fn users_list(data: web::Data<WebState>, req: HttpRequest) -> HttpResponse {
     let username = match get_session_user(&req) {
         Some(u) => u,
-        None => return HttpResponse::Found().append_header(("Location", "/admin/login")).finish(),
+        None => {
+            return HttpResponse::Found()
+                .append_header(("Location", "/admin/login"))
+                .finish();
+        }
     };
 
     let users = data.user_manager.list_users().await;
-    let user_views: Vec<UserView> = users.iter().map(|u| UserView {
-        username: u.username.clone(),
-        display_name: u.settings.display_name.clone().unwrap_or_default(),
-        role: format!("{:?}", u.role),
-        status: format!("{:?}", u.status),
-        is_admin: matches!(u.role, UserRole::Admin | UserRole::SuperAdmin),
-        is_active: format!("{:?}", u.status) == "Active",
-        is_user: matches!(u.role, UserRole::User),
-        is_superadmin: matches!(u.role, UserRole::SuperAdmin),
-        is_suspended: format!("{:?}", u.status) == "Suspended",
-        is_current_user: u.username == username,
-        last_login: u.last_login.map(|t| t.format("%Y-%m-%d %H:%M").to_string()).unwrap_or_else(|| "Never".to_string()),
-    }).collect();
+    let user_views: Vec<UserView> = users
+        .iter()
+        .map(|u| UserView {
+            username: u.username.clone(),
+            display_name: u.settings.display_name.clone().unwrap_or_default(),
+            role: format!("{:?}", u.role),
+            status: format!("{:?}", u.status),
+            is_admin: matches!(u.role, UserRole::Admin | UserRole::SuperAdmin),
+            is_active: format!("{:?}", u.status) == "Active",
+            is_user: matches!(u.role, UserRole::User),
+            is_superadmin: matches!(u.role, UserRole::SuperAdmin),
+            is_suspended: format!("{:?}", u.status) == "Suspended",
+            is_current_user: u.username == username,
+            last_login: u
+                .last_login
+                .map(|t| t.format("%Y-%m-%d %H:%M").to_string())
+                .unwrap_or_else(|| "Never".to_string()),
+        })
+        .collect();
 
-    let content = data.hbs.render("users", &json!({
-        "users": user_views,
-    })).unwrap_or_default();
+    let content = data
+        .hbs
+        .render(
+            "users",
+            &json!({
+                "users": user_views,
+            }),
+        )
+        .unwrap_or_default();
 
-    render_page(&data.hbs, "Users", &username, &content, false, true, false, None, None)
+    render_page(
+        &data.hbs, "Users", &username, &content, false, true, false, None, None,
+    )
 }
 
 /// New user form
-pub async fn user_new(
-    data: web::Data<WebState>,
-    req: HttpRequest,
-) -> HttpResponse {
+pub async fn user_new(data: web::Data<WebState>, req: HttpRequest) -> HttpResponse {
     let username = match get_session_user(&req) {
         Some(u) => u,
-        None => return HttpResponse::Found().append_header(("Location", "/admin/login")).finish(),
+        None => {
+            return HttpResponse::Found()
+                .append_header(("Location", "/admin/login"))
+                .finish();
+        }
     };
 
-    let content = data.hbs.render("user_form", &json!({
-        "editing": false,
-        "form_action": "/admin/users/new",
-        "user": {},
-    })).unwrap_or_default();
+    let content = data
+        .hbs
+        .render(
+            "user_form",
+            &json!({
+                "editing": false,
+                "form_action": "/admin/users/new",
+                "user": {},
+            }),
+        )
+        .unwrap_or_default();
 
-    render_page(&data.hbs, "New User", &username, &content, false, true, false, None, None)
+    render_page(
+        &data.hbs, "New User", &username, &content, false, true, false, None, None,
+    )
 }
 
 /// Create user
@@ -821,7 +883,11 @@ pub async fn user_create(
 ) -> HttpResponse {
     let username = match get_session_user(&req) {
         Some(u) => u,
-        None => return HttpResponse::Found().append_header(("Location", "/admin/login")).finish(),
+        None => {
+            return HttpResponse::Found()
+                .append_header(("Location", "/admin/login"))
+                .finish();
+        }
     };
 
     let role = match form.role.as_deref() {
@@ -831,14 +897,21 @@ pub async fn user_create(
     };
 
     let password = form.password.as_deref().unwrap_or("");
-    
-    match data.user_manager.create_user(&form.username, password, role).await {
-        Ok(mut user) => {
+
+    match data
+        .user_manager
+        .create_user(&form.username, password, role)
+        .await
+    {
+        Ok(_) => {
             if let Some(name) = &form.display_name {
                 if !name.is_empty() {
-                    let _ = data.user_manager.update_user(&form.username, |u| {
-                        u.settings.display_name = Some(name.clone());
-                    }).await;
+                    let _ = data
+                        .user_manager
+                        .update_user(&form.username, |u| {
+                            u.settings.display_name = Some(name.clone());
+                        })
+                        .await;
                 }
             }
             HttpResponse::Found()
@@ -846,15 +919,31 @@ pub async fn user_create(
                 .finish()
         }
         Err(e) => {
-            let content = data.hbs.render("user_form", &json!({
-                "editing": false,
-                "form_action": "/admin/users/new",
-                "user": {
-                    "username": form.username,
-                    "display_name": form.display_name,
-                },
-            })).unwrap_or_default();
-            render_page(&data.hbs, "New User", &username, &content, false, true, false, None, Some(&format!("{:?}", e)))
+            let content = data
+                .hbs
+                .render(
+                    "user_form",
+                    &json!({
+                        "editing": false,
+                        "form_action": "/admin/users/new",
+                        "user": {
+                            "username": form.username,
+                            "display_name": form.display_name,
+                        },
+                    }),
+                )
+                .unwrap_or_default();
+            render_page(
+                &data.hbs,
+                "New User",
+                &username,
+                &content,
+                false,
+                true,
+                false,
+                None,
+                Some(&format!("{:?}", e)),
+            )
         }
     }
 }
@@ -867,31 +956,55 @@ pub async fn user_edit(
 ) -> HttpResponse {
     let session_user = match get_session_user(&req) {
         Some(u) => u,
-        None => return HttpResponse::Found().append_header(("Location", "/admin/login")).finish(),
+        None => {
+            return HttpResponse::Found()
+                .append_header(("Location", "/admin/login"))
+                .finish();
+        }
     };
 
     let target_username = path.into_inner();
-    
+
     let user = match data.user_manager.get_user(&target_username).await {
         Some(u) => u,
-        None => return HttpResponse::Found().append_header(("Location", "/admin/users?error=User+not+found")).finish(),
+        None => {
+            return HttpResponse::Found()
+                .append_header(("Location", "/admin/users?error=User+not+found"))
+                .finish();
+        }
     };
 
-    let content = data.hbs.render("user_form", &json!({
-        "editing": true,
-        "form_action": format!("/admin/users/{}", target_username),
-        "user": {
-            "username": user.username,
-            "display_name": user.settings.display_name.clone().unwrap_or_default(),
-            "is_user": matches!(user.role, UserRole::User),
-            "is_admin": matches!(user.role, UserRole::Admin),
-            "is_superadmin": matches!(user.role, UserRole::SuperAdmin),
-            "is_active": format!("{:?}", user.status) == "Active",
-            "is_suspended": format!("{:?}", user.status) == "Suspended",
-        },
-    })).unwrap_or_default();
+    let content = data
+        .hbs
+        .render(
+            "user_form",
+            &json!({
+                "editing": true,
+                "form_action": format!("/admin/users/{}", target_username),
+                "user": {
+                    "username": user.username,
+                    "display_name": user.settings.display_name.clone().unwrap_or_default(),
+                    "is_user": matches!(user.role, UserRole::User),
+                    "is_admin": matches!(user.role, UserRole::Admin),
+                    "is_superadmin": matches!(user.role, UserRole::SuperAdmin),
+                    "is_active": format!("{:?}", user.status) == "Active",
+                    "is_suspended": format!("{:?}", user.status) == "Suspended",
+                },
+            }),
+        )
+        .unwrap_or_default();
 
-    render_page(&data.hbs, "Edit User", &session_user, &content, false, true, false, None, None)
+    render_page(
+        &data.hbs,
+        "Edit User",
+        &session_user,
+        &content,
+        false,
+        true,
+        false,
+        None,
+        None,
+    )
 }
 
 /// Update user
@@ -903,29 +1016,47 @@ pub async fn user_update(
 ) -> HttpResponse {
     let session_user = match get_session_user(&req) {
         Some(u) => u,
-        None => return HttpResponse::Found().append_header(("Location", "/admin/login")).finish(),
+        None => {
+            return HttpResponse::Found()
+                .append_header(("Location", "/admin/login"))
+                .finish();
+        }
     };
 
     let target_username = path.into_inner();
-    
+
     // Get current user for actor
     let actor = match data.user_manager.get_user(&session_user).await {
         Some(u) => u,
-        None => return HttpResponse::Found().append_header(("Location", "/admin/login")).finish(),
+        None => {
+            return HttpResponse::Found()
+                .append_header(("Location", "/admin/login"))
+                .finish();
+        }
     };
 
     // Update password if provided
     if let Some(password) = &form.password {
         if !password.is_empty() {
-            let _ = data.user_manager.admin_reset_password(&target_username, password, &actor, false).await;
+            let _ = data
+                .user_manager
+                .admin_reset_password(&target_username, password, &actor, false)
+                .await;
         }
     }
 
     // Update display name
     if let Some(name) = &form.display_name {
-        let _ = data.user_manager.update_user(&target_username, |u| {
-            u.settings.display_name = if name.is_empty() { None } else { Some(name.clone()) };
-        }).await;
+        let _ = data
+            .user_manager
+            .update_user(&target_username, |u| {
+                u.settings.display_name = if name.is_empty() {
+                    None
+                } else {
+                    Some(name.clone())
+                };
+            })
+            .await;
     }
 
     // Update role
@@ -935,7 +1066,10 @@ pub async fn user_update(
             "superadmin" => UserRole::SuperAdmin,
             _ => UserRole::User,
         };
-        let _ = data.user_manager.set_role(&target_username, role, &actor).await;
+        let _ = data
+            .user_manager
+            .set_role(&target_username, role, &actor)
+            .await;
     }
 
     // Update status
@@ -945,7 +1079,10 @@ pub async fn user_update(
             "suspended" => AccountStatus::Suspended,
             _ => AccountStatus::Active,
         };
-        let _ = data.user_manager.set_status(&target_username, status, &actor).await;
+        let _ = data
+            .user_manager
+            .set_status(&target_username, status, &actor)
+            .await;
     }
 
     HttpResponse::Found()
@@ -961,17 +1098,29 @@ pub async fn user_delete(
 ) -> HttpResponse {
     let session_user = match get_session_user(&req) {
         Some(u) => u,
-        None => return HttpResponse::Found().append_header(("Location", "/admin/login")).finish(),
+        None => {
+            return HttpResponse::Found()
+                .append_header(("Location", "/admin/login"))
+                .finish();
+        }
     };
 
     let target_username = path.into_inner();
-    
+
     let actor = match data.user_manager.get_user(&session_user).await {
         Some(u) => u,
-        None => return HttpResponse::Found().append_header(("Location", "/admin/login")).finish(),
+        None => {
+            return HttpResponse::Found()
+                .append_header(("Location", "/admin/login"))
+                .finish();
+        }
     };
 
-    match data.user_manager.delete_user(&target_username, &actor).await {
+    match data
+        .user_manager
+        .delete_user(&target_username, &actor)
+        .await
+    {
         Ok(_) => HttpResponse::Found()
             .append_header(("Location", "/admin/users?success=User+deleted"))
             .finish(),
@@ -982,49 +1131,78 @@ pub async fn user_delete(
 }
 
 /// Groups list
-pub async fn groups_list(
-    data: web::Data<WebState>,
-    req: HttpRequest,
-) -> HttpResponse {
+pub async fn groups_list(data: web::Data<WebState>, req: HttpRequest) -> HttpResponse {
     let username = match get_session_user(&req) {
         Some(u) => u,
-        None => return HttpResponse::Found().append_header(("Location", "/admin/login")).finish(),
+        None => {
+            return HttpResponse::Found()
+                .append_header(("Location", "/admin/login"))
+                .finish();
+        }
     };
 
     let groups = data.group_manager.list(Some(&username), true).await;
-    let group_views: Vec<GroupView> = groups.iter().map(|g| GroupView {
-        name: g.name.clone(),
-        email: g.email.clone(),
-        description: g.description.clone(),
-        owner: g.owner.clone(),
-        member_count: g.members.len(),
-        members: g.members.iter().cloned().collect(),
-    }).collect();
+    let group_views: Vec<GroupView> = groups
+        .iter()
+        .map(|g| GroupView {
+            name: g.name.clone(),
+            email: g.email.clone(),
+            description: g.description.clone(),
+            owner: g.owner.clone(),
+            member_count: g.members.len(),
+            members: g.members.iter().cloned().collect(),
+        })
+        .collect();
 
-    let content = data.hbs.render("groups", &json!({
-        "groups": group_views,
-    })).unwrap_or_default();
+    let content = data
+        .hbs
+        .render(
+            "groups",
+            &json!({
+                "groups": group_views,
+            }),
+        )
+        .unwrap_or_default();
 
-    render_page(&data.hbs, "Groups", &username, &content, false, false, true, None, None)
+    render_page(
+        &data.hbs, "Groups", &username, &content, false, false, true, None, None,
+    )
 }
 
 /// New group form
-pub async fn group_new(
-    data: web::Data<WebState>,
-    req: HttpRequest,
-) -> HttpResponse {
+pub async fn group_new(data: web::Data<WebState>, req: HttpRequest) -> HttpResponse {
     let username = match get_session_user(&req) {
         Some(u) => u,
-        None => return HttpResponse::Found().append_header(("Location", "/admin/login")).finish(),
+        None => {
+            return HttpResponse::Found()
+                .append_header(("Location", "/admin/login"))
+                .finish();
+        }
     };
 
-    let content = data.hbs.render("group_form", &json!({
-        "editing": false,
-        "form_action": "/admin/groups/new",
-        "group": {},
-    })).unwrap_or_default();
+    let content = data
+        .hbs
+        .render(
+            "group_form",
+            &json!({
+                "editing": false,
+                "form_action": "/admin/groups/new",
+                "group": {},
+            }),
+        )
+        .unwrap_or_default();
 
-    render_page(&data.hbs, "New Group", &username, &content, false, false, true, None, None)
+    render_page(
+        &data.hbs,
+        "New Group",
+        &username,
+        &content,
+        false,
+        false,
+        true,
+        None,
+        None,
+    )
 }
 
 /// Create group
@@ -1035,10 +1213,18 @@ pub async fn group_create(
 ) -> HttpResponse {
     let username = match get_session_user(&req) {
         Some(u) => u,
-        None => return HttpResponse::Found().append_header(("Location", "/admin/login")).finish(),
+        None => {
+            return HttpResponse::Found()
+                .append_header(("Location", "/admin/login"))
+                .finish();
+        }
     };
 
-    match data.group_manager.create(&form.name, &form.email, &username).await {
+    match data
+        .group_manager
+        .create(&form.name, &form.email, &username)
+        .await
+    {
         Ok(mut group) => {
             if let Some(desc) = &form.description {
                 group.description = desc.clone();
@@ -1049,16 +1235,32 @@ pub async fn group_create(
                 .finish()
         }
         Err(e) => {
-            let content = data.hbs.render("group_form", &json!({
-                "editing": false,
-                "form_action": "/admin/groups/new",
-                "group": {
-                    "name": form.name,
-                    "email": form.email,
-                    "description": form.description,
-                },
-            })).unwrap_or_default();
-            render_page(&data.hbs, "New Group", &username, &content, false, false, true, None, Some(&format!("{:?}", e)))
+            let content = data
+                .hbs
+                .render(
+                    "group_form",
+                    &json!({
+                        "editing": false,
+                        "form_action": "/admin/groups/new",
+                        "group": {
+                            "name": form.name,
+                            "email": form.email,
+                            "description": form.description,
+                        },
+                    }),
+                )
+                .unwrap_or_default();
+            render_page(
+                &data.hbs,
+                "New Group",
+                &username,
+                &content,
+                false,
+                false,
+                true,
+                None,
+                Some(&format!("{:?}", e)),
+            )
         }
     }
 }
@@ -1071,32 +1273,56 @@ pub async fn group_edit(
 ) -> HttpResponse {
     let username = match get_session_user(&req) {
         Some(u) => u,
-        None => return HttpResponse::Found().append_header(("Location", "/admin/login")).finish(),
+        None => {
+            return HttpResponse::Found()
+                .append_header(("Location", "/admin/login"))
+                .finish();
+        }
     };
 
     let group_name = path.into_inner();
-    
+
     let group = match data.group_manager.get(&group_name).await {
         Some(g) => g,
-        None => return HttpResponse::Found().append_header(("Location", "/admin/groups?error=Group+not+found")).finish(),
+        None => {
+            return HttpResponse::Found()
+                .append_header(("Location", "/admin/groups?error=Group+not+found"))
+                .finish();
+        }
     };
 
     let members: Vec<String> = group.members.iter().cloned().collect();
-    
-    let content = data.hbs.render("group_form", &json!({
-        "editing": true,
-        "form_action": format!("/admin/groups/{}", group_name),
-        "group": {
-            "name": group.name,
-            "email": group.email,
-            "description": group.description,
-            "owner": group.owner,
-            "member_count": members.len(),
-            "members": members,
-        },
-    })).unwrap_or_default();
 
-    render_page(&data.hbs, "Edit Group", &username, &content, false, false, true, None, None)
+    let content = data
+        .hbs
+        .render(
+            "group_form",
+            &json!({
+                "editing": true,
+                "form_action": format!("/admin/groups/{}", group_name),
+                "group": {
+                    "name": group.name,
+                    "email": group.email,
+                    "description": group.description,
+                    "owner": group.owner,
+                    "member_count": members.len(),
+                    "members": members,
+                },
+            }),
+        )
+        .unwrap_or_default();
+
+    render_page(
+        &data.hbs,
+        "Edit Group",
+        &username,
+        &content,
+        false,
+        false,
+        true,
+        None,
+        None,
+    )
 }
 
 /// Update group
@@ -1106,9 +1332,13 @@ pub async fn group_update(
     path: web::Path<String>,
     form: web::Form<GroupForm>,
 ) -> HttpResponse {
-    let username = match get_session_user(&req) {
+    let _username = match get_session_user(&req) {
         Some(u) => u,
-        None => return HttpResponse::Found().append_header(("Location", "/admin/login")).finish(),
+        None => {
+            return HttpResponse::Found()
+                .append_header(("Location", "/admin/login"))
+                .finish();
+        }
     };
 
     let group_name = path.into_inner();
@@ -1121,7 +1351,10 @@ pub async fn group_update(
     }
 
     HttpResponse::Found()
-        .append_header(("Location", format!("/admin/groups/{}?success=Group+updated", group_name)))
+        .append_header((
+            "Location",
+            format!("/admin/groups/{}?success=Group+updated", group_name),
+        ))
         .finish()
 }
 
@@ -1133,7 +1366,11 @@ pub async fn group_delete(
 ) -> HttpResponse {
     let username = match get_session_user(&req) {
         Some(u) => u,
-        None => return HttpResponse::Found().append_header(("Location", "/admin/login")).finish(),
+        None => {
+            return HttpResponse::Found()
+                .append_header(("Location", "/admin/login"))
+                .finish();
+        }
     };
 
     let group_name = path.into_inner();
@@ -1157,17 +1394,31 @@ pub async fn group_add_member(
 ) -> HttpResponse {
     let session_user = match get_session_user(&req) {
         Some(u) => u,
-        None => return HttpResponse::Found().append_header(("Location", "/admin/login")).finish(),
+        None => {
+            return HttpResponse::Found()
+                .append_header(("Location", "/admin/login"))
+                .finish();
+        }
     };
 
     let group_name = path.into_inner();
 
-    match data.group_manager.add_member(&group_name, &form.username, &session_user).await {
+    match data
+        .group_manager
+        .add_member(&group_name, &form.username, &session_user)
+        .await
+    {
         Ok(_) => HttpResponse::Found()
-            .append_header(("Location", format!("/admin/groups/{}?success=Member+added", group_name)))
+            .append_header((
+                "Location",
+                format!("/admin/groups/{}?success=Member+added", group_name),
+            ))
             .finish(),
         Err(e) => HttpResponse::Found()
-            .append_header(("Location", format!("/admin/groups/{}?error={:?}", group_name, e)))
+            .append_header((
+                "Location",
+                format!("/admin/groups/{}?error={:?}", group_name, e),
+            ))
             .finish(),
     }
 }
@@ -1180,17 +1431,31 @@ pub async fn group_remove_member(
 ) -> HttpResponse {
     let session_user = match get_session_user(&req) {
         Some(u) => u,
-        None => return HttpResponse::Found().append_header(("Location", "/admin/login")).finish(),
+        None => {
+            return HttpResponse::Found()
+                .append_header(("Location", "/admin/login"))
+                .finish();
+        }
     };
 
     let (group_name, member) = path.into_inner();
 
-    match data.group_manager.remove_member(&group_name, &member, &session_user).await {
+    match data
+        .group_manager
+        .remove_member(&group_name, &member, &session_user)
+        .await
+    {
         Ok(_) => HttpResponse::Found()
-            .append_header(("Location", format!("/admin/groups/{}?success=Member+removed", group_name)))
+            .append_header((
+                "Location",
+                format!("/admin/groups/{}?success=Member+removed", group_name),
+            ))
             .finish(),
         Err(e) => HttpResponse::Found()
-            .append_header(("Location", format!("/admin/groups/{}?error={:?}", group_name, e)))
+            .append_header((
+                "Location",
+                format!("/admin/groups/{}?error={:?}", group_name, e),
+            ))
             .finish(),
     }
 }
@@ -1199,6 +1464,7 @@ pub async fn group_remove_member(
 // Helpers
 // ============================================================================
 
+#[allow(clippy::too_many_arguments)]
 fn render_page(
     hbs: &Handlebars,
     title: &str,
@@ -1210,16 +1476,21 @@ fn render_page(
     flash_success: Option<&str>,
     flash_error: Option<&str>,
 ) -> HttpResponse {
-    let body = hbs.render("base", &json!({
-        "title": title,
-        "username": username,
-        "content": content,
-        "nav_dashboard": nav_dashboard,
-        "nav_users": nav_users,
-        "nav_groups": nav_groups,
-        "flash_success": flash_success,
-        "flash_error": flash_error,
-    })).unwrap_or_else(|e| format!("Template error: {}", e));
+    let body = hbs
+        .render(
+            "base",
+            &json!({
+                "title": title,
+                "username": username,
+                "content": content,
+                "nav_dashboard": nav_dashboard,
+                "nav_users": nav_users,
+                "nav_groups": nav_groups,
+                "flash_success": flash_success,
+                "flash_error": flash_error,
+            }),
+        )
+        .unwrap_or_else(|e| format!("Template error: {}", e));
 
     HttpResponse::Ok()
         .content_type("text/html; charset=utf-8")
@@ -1230,15 +1501,21 @@ fn render_page(
 pub fn create_handlebars() -> Handlebars<'static> {
     let mut hbs = Handlebars::new();
     hbs.set_strict_mode(false);
-    
+
     hbs.register_template_string("base", BASE_TEMPLATE).unwrap();
-    hbs.register_template_string("login", LOGIN_TEMPLATE).unwrap();
-    hbs.register_template_string("dashboard", DASHBOARD_CONTENT).unwrap();
-    hbs.register_template_string("users", USERS_CONTENT).unwrap();
-    hbs.register_template_string("user_form", USER_FORM_CONTENT).unwrap();
-    hbs.register_template_string("groups", GROUPS_CONTENT).unwrap();
-    hbs.register_template_string("group_form", GROUP_FORM_CONTENT).unwrap();
-    
+    hbs.register_template_string("login", LOGIN_TEMPLATE)
+        .unwrap();
+    hbs.register_template_string("dashboard", DASHBOARD_CONTENT)
+        .unwrap();
+    hbs.register_template_string("users", USERS_CONTENT)
+        .unwrap();
+    hbs.register_template_string("user_form", USER_FORM_CONTENT)
+        .unwrap();
+    hbs.register_template_string("groups", GROUPS_CONTENT)
+        .unwrap();
+    hbs.register_template_string("group_form", GROUP_FORM_CONTENT)
+        .unwrap();
+
     hbs
 }
 
@@ -1264,7 +1541,10 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig) {
             .route("/groups/{name}", web::post().to(group_update))
             .route("/groups/{name}/delete", web::post().to(group_delete))
             .route("/groups/{name}/members", web::post().to(group_add_member))
-            .route("/groups/{name}/members/{member}/remove", web::post().to(group_remove_member))
+            .route(
+                "/groups/{name}/members/{member}/remove",
+                web::post().to(group_remove_member),
+            ),
     );
 }
 
@@ -1285,7 +1565,7 @@ pub async fn run_web_server(
     }
 
     let addr = format!("{}:{}", config.bind_address, config.port);
-    
+
     let web_state = web::Data::new(WebState {
         user_manager,
         group_manager,
@@ -1301,11 +1581,14 @@ pub async fn run_web_server(
         App::new()
             .app_data(web_state.clone())
             .configure(configure_routes)
-            .route("/", web::get().to(|| async {
-                HttpResponse::Found()
-                    .append_header(("Location", "/admin"))
-                    .finish()
-            }))
+            .route(
+                "/",
+                web::get().to(|| async {
+                    HttpResponse::Found()
+                        .append_header(("Location", "/admin"))
+                        .finish()
+                }),
+            )
     })
     .bind(&addr)?
     .run()

@@ -3,7 +3,7 @@
 //! Provides command-line tools for user and server management.
 
 use crate::storage::Storage;
-use crate::users::{AccountStatus, UserManager, UserQuota, UserRole};
+use crate::users::{AccountStatus, UserQuota, UserRole};
 use std::sync::Arc;
 
 /// Admin command results
@@ -185,7 +185,9 @@ Type 'help' for this message.
             status: user.status.to_string(),
             display_name: user.settings.display_name.clone(),
             created_at: user.created_at.format("%Y-%m-%d %H:%M:%S").to_string(),
-            last_login: user.last_login.map(|d| d.format("%Y-%m-%d %H:%M:%S").to_string()),
+            last_login: user
+                .last_login
+                .map(|d| d.format("%Y-%m-%d %H:%M:%S").to_string()),
             failed_attempts: user.failed_login_attempts,
             quota_used: user.quota.current_usage,
             quota_max: user.quota.max_mailbox_size,
@@ -291,7 +293,7 @@ Type 'help' for this message.
             _ => {
                 return AdminResult::Error(
                     "Invalid status. Use: active, suspended, disabled".to_string(),
-                )
+                );
             }
         };
 
@@ -301,18 +303,18 @@ Type 'help' for this message.
             .set_status(username, status, actor)
             .await
         {
-            Ok(()) => AdminResult::Success(format!("Status set to {} for user: {}", status, username)),
+            Ok(()) => {
+                AdminResult::Success(format!("Status set to {} for user: {}", status, username))
+            }
             Err(e) => AdminResult::Error(format!("Failed to set status: {}", e)),
         }
     }
 
-    async fn cmd_set_role(
-        &self,
-        args: &[&str],
-        actor: &crate::users::UserAccount,
-    ) -> AdminResult {
+    async fn cmd_set_role(&self, args: &[&str], actor: &crate::users::UserAccount) -> AdminResult {
         if args.len() < 2 {
-            return AdminResult::Error("Usage: role <username> <user|admin|superadmin>".to_string());
+            return AdminResult::Error(
+                "Usage: role <username> <user|admin|superadmin>".to_string(),
+            );
         }
 
         let username = args[0];
@@ -323,7 +325,7 @@ Type 'help' for this message.
             _ => {
                 return AdminResult::Error(
                     "Invalid role. Use: user, admin, superadmin".to_string(),
-                )
+                );
             }
         };
 
@@ -338,11 +340,7 @@ Type 'help' for this message.
         }
     }
 
-    async fn cmd_set_quota(
-        &self,
-        args: &[&str],
-        actor: &crate::users::UserAccount,
-    ) -> AdminResult {
+    async fn cmd_set_quota(&self, args: &[&str], actor: &crate::users::UserAccount) -> AdminResult {
         if args.len() < 2 {
             return AdminResult::Error("Usage: quota <username> <size_mb>".to_string());
         }
@@ -350,11 +348,15 @@ Type 'help' for this message.
         let username = args[0];
         let size_mb: u64 = match args[1].parse() {
             Ok(s) => s,
-            Err(_) => return AdminResult::Error("Invalid size. Must be a number in MB".to_string()),
+            Err(_) => {
+                return AdminResult::Error("Invalid size. Must be a number in MB".to_string());
+            }
         };
 
-        let mut quota = UserQuota::default();
-        quota.max_mailbox_size = size_mb * 1024 * 1024;
+        let quota = UserQuota {
+            max_mailbox_size: size_mb * 1024 * 1024,
+            ..Default::default()
+        };
 
         match self
             .storage
@@ -405,7 +407,7 @@ Type 'help' for this message.
 
     async fn cmd_export_users(&self) -> AdminResult {
         let users = self.storage.user_manager().list_users().await;
-        
+
         let export: Vec<serde_json::Value> = users
             .iter()
             .map(|u| {
@@ -499,7 +501,11 @@ Security:
                 info.quota_percent,
                 info.message_count,
                 info.outgoing_today,
-                if info.password_change_required { "Yes" } else { "No" },
+                if info.password_change_required {
+                    "Yes"
+                } else {
+                    "No"
+                },
                 if info.allowed_ips.is_empty() {
                     "All".to_string()
                 } else {
@@ -532,8 +538,9 @@ Storage:
 }
 
 /// Parse command line for admin commands
+#[allow(dead_code)]
 pub fn parse_admin_command(input: &str) -> Option<(String, Vec<String>)> {
-    let parts: Vec<&str> = input.trim().split_whitespace().collect();
+    let parts: Vec<&str> = input.split_whitespace().collect();
     if parts.is_empty() {
         return None;
     }

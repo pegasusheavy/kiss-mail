@@ -264,12 +264,12 @@ impl SpamClassifier {
         if url_count > 0 {
             tokens.push(format!("__URL_COUNT_{}", url_count.min(10)));
         }
-        
+
         // Suspicious URL patterns
-        if email.contains("bit.ly") || email.contains("tinyurl") || email.contains("t.co") {
-            if seen.insert("__SHORT_URL".to_string()) {
-                tokens.push("__SHORT_URL".to_string());
-            }
+        if (email.contains("bit.ly") || email.contains("tinyurl") || email.contains("t.co"))
+            && seen.insert("__SHORT_URL".to_string())
+        {
+            tokens.push("__SHORT_URL".to_string());
         }
 
         // CAPS features
@@ -291,7 +291,14 @@ impl SpamClassifier {
         }
 
         // Urgency words
-        let urgency_words = ["urgent", "immediately", "act now", "limited time", "expires", "deadline"];
+        let urgency_words = [
+            "urgent",
+            "immediately",
+            "act now",
+            "limited time",
+            "expires",
+            "deadline",
+        ];
         for word in &urgency_words {
             if email.contains(word) && seen.insert(format!("__URGENT_{}", word)) {
                 tokens.push(format!("__URGENT_{}", word));
@@ -299,7 +306,15 @@ impl SpamClassifier {
         }
 
         // Phishing patterns
-        let phishing_words = ["verify", "confirm", "suspend", "account", "password", "login", "click here"];
+        let phishing_words = [
+            "verify",
+            "confirm",
+            "suspend",
+            "account",
+            "password",
+            "login",
+            "click here",
+        ];
         let mut phishing_count = 0;
         for word in &phishing_words {
             if email.contains(word) {
@@ -349,9 +364,11 @@ impl SpamClassifier {
                         .map(|p| domain_start + p)
                         .unwrap_or(from_section.len().min(domain_start + 50));
                     let domain = &from_section[domain_start..domain_end];
-                    
+
                     // Suspicious TLDs
-                    let suspicious_tlds = [".xyz", ".top", ".work", ".click", ".loan", ".racing", ".win"];
+                    let suspicious_tlds = [
+                        ".xyz", ".top", ".work", ".click", ".loan", ".racing", ".win",
+                    ];
                     for tld in &suspicious_tlds {
                         if domain.ends_with(tld) {
                             tokens.push(format!("__SUSPICIOUS_TLD_{}", tld));
@@ -375,12 +392,13 @@ impl SpamClassifier {
             ("nigerian", "prince"),
             ("wire", "transfer"),
         ];
-        
+
         for (w1, w2) in &spam_bigrams {
-            if email.contains(w1) && email.contains(w2) {
-                if seen.insert(format!("__BIGRAM_{}_{}", w1, w2)) {
-                    tokens.push(format!("__BIGRAM_{}_{}", w1, w2));
-                }
+            if email.contains(w1)
+                && email.contains(w2)
+                && seen.insert(format!("__BIGRAM_{}_{}", w1, w2))
+            {
+                tokens.push(format!("__BIGRAM_{}_{}", w1, w2));
             }
         }
     }
@@ -391,28 +409,109 @@ impl SpamClassifier {
 
         // Common spam words and patterns
         let spam_seeds = [
-            "viagra", "cialis", "lottery", "winner", "congratulations", "million",
-            "dollars", "inheritance", "beneficiary", "nigeria", "prince", "urgent",
-            "wire", "transfer", "casino", "gambling", "pills", "pharmacy", "discount",
-            "cheap", "free", "click", "subscribe", "unsubscribe", "opt-out",
-            "limited", "offer", "expires", "act", "now", "immediately",
-            "guarantee", "credit", "debt", "loan", "mortgage", "refinance",
-            "weight", "loss", "diet", "enhancement", "enlargement",
-            "__SHORT_URL", "__HIGH_CAPS", "__PHISHING_PATTERN", "__NO_MESSAGE_ID",
-            "__SUSPICIOUS_TLD_.xyz", "__SUSPICIOUS_TLD_.top", "__BIGRAM_free_money",
-            "__BIGRAM_click_here", "__BIGRAM_act_now", "__BIGRAM_dear_friend",
+            "viagra",
+            "cialis",
+            "lottery",
+            "winner",
+            "congratulations",
+            "million",
+            "dollars",
+            "inheritance",
+            "beneficiary",
+            "nigeria",
+            "prince",
+            "urgent",
+            "wire",
+            "transfer",
+            "casino",
+            "gambling",
+            "pills",
+            "pharmacy",
+            "discount",
+            "cheap",
+            "free",
+            "click",
+            "subscribe",
+            "unsubscribe",
+            "opt-out",
+            "limited",
+            "offer",
+            "expires",
+            "act",
+            "now",
+            "immediately",
+            "guarantee",
+            "credit",
+            "debt",
+            "loan",
+            "mortgage",
+            "refinance",
+            "weight",
+            "loss",
+            "diet",
+            "enhancement",
+            "enlargement",
+            "__SHORT_URL",
+            "__HIGH_CAPS",
+            "__PHISHING_PATTERN",
+            "__NO_MESSAGE_ID",
+            "__SUSPICIOUS_TLD_.xyz",
+            "__SUSPICIOUS_TLD_.top",
+            "__BIGRAM_free_money",
+            "__BIGRAM_click_here",
+            "__BIGRAM_act_now",
+            "__BIGRAM_dear_friend",
         ];
 
         // Common ham words
         let ham_seeds = [
-            "meeting", "schedule", "project", "report", "document", "attached",
-            "please", "thanks", "thank", "regards", "sincerely", "best",
-            "review", "feedback", "update", "status", "discussion", "team",
-            "monday", "tuesday", "wednesday", "thursday", "friday", "week",
-            "invoice", "receipt", "order", "shipping", "delivery", "tracking",
-            "conference", "call", "agenda", "minutes", "presentation",
-            "github", "commit", "merge", "pull", "request", "issue", "bug",
-            "deployment", "release", "version", "update", "patch",
+            "meeting",
+            "schedule",
+            "project",
+            "report",
+            "document",
+            "attached",
+            "please",
+            "thanks",
+            "thank",
+            "regards",
+            "sincerely",
+            "best",
+            "review",
+            "feedback",
+            "update",
+            "status",
+            "discussion",
+            "team",
+            "monday",
+            "tuesday",
+            "wednesday",
+            "thursday",
+            "friday",
+            "week",
+            "invoice",
+            "receipt",
+            "order",
+            "shipping",
+            "delivery",
+            "tracking",
+            "conference",
+            "call",
+            "agenda",
+            "minutes",
+            "presentation",
+            "github",
+            "commit",
+            "merge",
+            "pull",
+            "request",
+            "issue",
+            "bug",
+            "deployment",
+            "release",
+            "version",
+            "update",
+            "patch",
         ];
 
         let mut tokens = self.tokens.write().await;
@@ -458,10 +557,18 @@ impl SpamClassifier {
             .collect();
 
         spam_words.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
-        let top_spam_words: Vec<_> = spam_words.iter().take(20).map(|(w, r, _)| (w.clone(), *r)).collect();
+        let top_spam_words: Vec<_> = spam_words
+            .iter()
+            .take(20)
+            .map(|(w, r, _)| (w.clone(), *r))
+            .collect();
 
         spam_words.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal));
-        let top_ham_words: Vec<_> = spam_words.iter().take(20).map(|(w, r, _)| (w.clone(), 1.0 - *r)).collect();
+        let top_ham_words: Vec<_> = spam_words
+            .iter()
+            .take(20)
+            .map(|(w, r, _)| (w.clone(), 1.0 - *r))
+            .collect();
 
         ClassifierStats {
             total_tokens: tokens.len(),
@@ -511,38 +618,56 @@ mod tests {
 
         // Train with some spam
         for _ in 0..20 {
-            classifier.learn_spam("Buy cheap viagra now! Click here for free money! Act immediately!").await;
-            classifier.learn_spam("Congratulations! You won the lottery! Wire transfer required.").await;
+            classifier
+                .learn_spam("Buy cheap viagra now! Click here for free money! Act immediately!")
+                .await;
+            classifier
+                .learn_spam("Congratulations! You won the lottery! Wire transfer required.")
+                .await;
         }
 
         // Train with some ham
         for _ in 0..20 {
-            classifier.learn_ham("Hi, please review the attached document for our meeting tomorrow.").await;
-            classifier.learn_ham("The project status update is ready. Let me know your feedback.").await;
+            classifier
+                .learn_ham("Hi, please review the attached document for our meeting tomorrow.")
+                .await;
+            classifier
+                .learn_ham("The project status update is ready. Let me know your feedback.")
+                .await;
         }
 
         // Test classification
-        let spam_result = classifier.classify("FREE MONEY! Click here NOW to claim your prize!!!").await;
-        assert!(spam_result.spam_probability > 0.5, "Should classify as likely spam");
+        let spam_result = classifier
+            .classify("FREE MONEY! Click here NOW to claim your prize!!!")
+            .await;
+        assert!(
+            spam_result.spam_probability > 0.5,
+            "Should classify as likely spam"
+        );
 
-        let ham_result = classifier.classify("Please review the attached report and send your feedback.").await;
-        assert!(ham_result.spam_probability < 0.5, "Should classify as likely ham");
+        let ham_result = classifier
+            .classify("Please review the attached report and send your feedback.")
+            .await;
+        assert!(
+            ham_result.spam_probability < 0.5,
+            "Should classify as likely ham"
+        );
     }
 
     #[tokio::test]
     async fn test_persistence() {
         let dir = tempdir().unwrap();
-        
+
         // Create and train
         {
             let classifier = SpamClassifier::new(dir.path().to_path_buf());
             classifier.load().await.unwrap();
-            
+
             for _ in 0..10 {
                 classifier.learn_spam("spam test message").await;
                 classifier.learn_ham("ham test message").await;
             }
-            
+
             classifier.save().await.unwrap();
         }
 
@@ -550,7 +675,7 @@ mod tests {
         {
             let classifier = SpamClassifier::new(dir.path().to_path_buf());
             classifier.load().await.unwrap();
-            
+
             let stats = classifier.stats().await;
             assert!(stats.total_spam_emails > 100); // Seeded + trained
             assert!(stats.total_ham_emails > 100);

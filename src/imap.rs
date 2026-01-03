@@ -121,7 +121,10 @@ async fn process_imap_command(line: &str, session: &mut ImapSession, storage: &S
         }
         "NOOP" => format!("{} OK NOOP completed\r\n", tag),
         "LOGOUT" => {
-            format!("* BYE kiss-mail server logging out\r\n{} OK LOGOUT completed\r\n", tag)
+            format!(
+                "* BYE kiss-mail server logging out\r\n{} OK LOGOUT completed\r\n",
+                tag
+            )
         }
         "LOGIN" => {
             if session.state != ImapState::NotAuthenticated {
@@ -155,7 +158,10 @@ async fn process_imap_command(line: &str, session: &mut ImapSession, storage: &S
         "AUTHENTICATE" => {
             if args.to_uppercase().starts_with("PLAIN") {
                 // For simplicity, we'll handle inline PLAIN auth
-                format!("{} NO AUTHENTICATE PLAIN not fully implemented, use LOGIN\r\n", tag)
+                format!(
+                    "{} NO AUTHENTICATE PLAIN not fully implemented, use LOGIN\r\n",
+                    tag
+                )
             } else {
                 format!("{} NO Unknown authentication mechanism\r\n", tag)
             }
@@ -172,7 +178,10 @@ async fn process_imap_command(line: &str, session: &mut ImapSession, storage: &S
                 return format!("{} NO Mailbox does not exist\r\n", tag);
             }
 
-            if let Some(mailbox) = storage.get_mailbox(session.username.as_ref().unwrap()).await {
+            if let Some(mailbox) = storage
+                .get_mailbox(session.username.as_ref().unwrap())
+                .await
+            {
                 session.state = ImapState::Selected;
                 session.selected_mailbox = Some("INBOX".to_string());
 
@@ -185,9 +194,7 @@ async fn process_imap_command(line: &str, session: &mut ImapSession, storage: &S
                 response.push_str(&format!("* {} EXISTS\r\n", exists));
                 response.push_str(&format!("* {} RECENT\r\n", recent));
                 response.push_str("* FLAGS (\\Seen \\Answered \\Flagged \\Deleted \\Draft)\r\n");
-                response.push_str(
-                    "* OK [PERMANENTFLAGS (\\Seen \\Deleted)] Limited flags\r\n",
-                );
+                response.push_str("* OK [PERMANENTFLAGS (\\Seen \\Deleted)] Limited flags\r\n");
                 if let Some(first_unseen) = unseen {
                     response.push_str(&format!("* OK [UNSEEN {}] First unseen\r\n", first_unseen));
                 }
@@ -195,7 +202,10 @@ async fn process_imap_command(line: &str, session: &mut ImapSession, storage: &S
                     "* OK [UIDVALIDITY {}] UIDs valid\r\n",
                     mailbox.uidvalidity
                 ));
-                response.push_str(&format!("* OK [UIDNEXT {}] Predicted next UID\r\n", mailbox.uidnext));
+                response.push_str(&format!(
+                    "* OK [UIDNEXT {}] Predicted next UID\r\n",
+                    mailbox.uidnext
+                ));
 
                 let access = if cmd == "SELECT" {
                     "[READ-WRITE]"
@@ -240,7 +250,10 @@ async fn process_imap_command(line: &str, session: &mut ImapSession, storage: &S
                 return format!("{} NO Mailbox does not exist\r\n", tag);
             }
 
-            if let Some(mailbox) = storage.get_mailbox(session.username.as_ref().unwrap()).await {
+            if let Some(mailbox) = storage
+                .get_mailbox(session.username.as_ref().unwrap())
+                .await
+            {
                 let emails = mailbox.get_active_emails();
                 let messages = emails.len();
                 let recent = emails.iter().filter(|e| !e.seen).count();
@@ -264,9 +277,7 @@ async fn process_imap_command(line: &str, session: &mut ImapSession, storage: &S
             }
 
             // Expunge deleted messages
-            storage
-                .expunge(session.username.as_ref().unwrap())
-                .await;
+            storage.expunge(session.username.as_ref().unwrap()).await;
             let _ = storage.save().await;
 
             session.state = ImapState::Authenticated;
@@ -278,9 +289,7 @@ async fn process_imap_command(line: &str, session: &mut ImapSession, storage: &S
                 return format!("{} NO No mailbox selected\r\n", tag);
             }
 
-            let expunged = storage
-                .expunge(session.username.as_ref().unwrap())
-                .await;
+            let expunged = storage.expunge(session.username.as_ref().unwrap()).await;
             let _ = storage.save().await;
 
             let mut response = String::new();
@@ -295,7 +304,10 @@ async fn process_imap_command(line: &str, session: &mut ImapSession, storage: &S
                 return format!("{} NO No mailbox selected\r\n", tag);
             }
 
-            if let Some(mailbox) = storage.get_mailbox(session.username.as_ref().unwrap()).await {
+            if let Some(mailbox) = storage
+                .get_mailbox(session.username.as_ref().unwrap())
+                .await
+            {
                 let emails = mailbox.get_active_emails();
                 let args_upper = args.to_uppercase();
 
@@ -343,7 +355,10 @@ async fn process_imap_command(line: &str, session: &mut ImapSession, storage: &S
             let sequence = fetch_parts[0];
             let items = fetch_parts[1];
 
-            if let Some(mailbox) = storage.get_mailbox(session.username.as_ref().unwrap()).await {
+            if let Some(mailbox) = storage
+                .get_mailbox(session.username.as_ref().unwrap())
+                .await
+            {
                 let emails = mailbox.get_active_emails();
                 let seq_nums = parse_sequence_set(sequence, emails.len());
 
@@ -377,7 +392,10 @@ async fn process_imap_command(line: &str, session: &mut ImapSession, storage: &S
             let action = store_parts[1].to_uppercase();
             let flags = store_parts[2];
 
-            if let Some(mailbox) = storage.get_mailbox(session.username.as_ref().unwrap()).await {
+            if let Some(mailbox) = storage
+                .get_mailbox(session.username.as_ref().unwrap())
+                .await
+            {
                 let emails = mailbox.get_active_emails();
                 let seq_nums = parse_sequence_set(sequence, emails.len());
 
@@ -387,12 +405,10 @@ async fn process_imap_command(line: &str, session: &mut ImapSession, storage: &S
                     if *seq > 0 && *seq <= emails.len() {
                         let flags_upper = flags.to_uppercase();
 
-                        if flags_upper.contains("\\SEEN") {
-                            if action.contains("+") {
-                                storage
-                                    .mark_seen(session.username.as_ref().unwrap(), seq - 1)
-                                    .await;
-                            }
+                        if flags_upper.contains("\\SEEN") && action.contains("+") {
+                            storage
+                                .mark_seen(session.username.as_ref().unwrap(), seq - 1)
+                                .await;
                         }
 
                         if flags_upper.contains("\\DELETED") {
@@ -458,7 +474,7 @@ async fn process_imap_command(line: &str, session: &mut ImapSession, storage: &S
         }
         "IDLE" => {
             // IDLE extension - we'll just acknowledge it
-            format!("+ idling\r\n")
+            "+ idling\r\n".to_string()
         }
         _ => format!("{} BAD Unknown command\r\n", tag),
     }
@@ -561,20 +577,31 @@ fn build_fetch_response(seq: usize, email: &crate::storage::Email, items: &str) 
     }
 
     if wants_bodystructure {
-        parts.push("BODYSTRUCTURE (\"TEXT\" \"PLAIN\" (\"CHARSET\" \"UTF-8\") NIL NIL \"7BIT\" 0 0)".to_string());
+        parts.push(
+            "BODYSTRUCTURE (\"TEXT\" \"PLAIN\" (\"CHARSET\" \"UTF-8\") NIL NIL \"7BIT\" 0 0)"
+                .to_string(),
+        );
     }
 
     if wants_header {
         let header_end = email.raw.find("\r\n\r\n").unwrap_or(email.raw.len());
         let headers = &email.raw[..header_end];
-        parts.push(format!("RFC822.HEADER {{{}}}\r\n{}", headers.len(), headers));
+        parts.push(format!(
+            "RFC822.HEADER {{{}}}\r\n{}",
+            headers.len(),
+            headers
+        ));
     }
 
     if wants_body {
         if items_upper.contains("BODY[]") || items_upper.contains("RFC822") {
             parts.push(format!("BODY[] {{{}}}\r\n{}", email.raw.len(), email.raw));
         } else if items_upper.contains("BODY[TEXT]") {
-            parts.push(format!("BODY[TEXT] {{{}}}\r\n{}", email.body.len(), email.body));
+            parts.push(format!(
+                "BODY[TEXT] {{{}}}\r\n{}",
+                email.body.len(),
+                email.body
+            ));
         } else if items_upper.contains("BODY.PEEK") {
             // PEEK doesn't mark as seen
             if items_upper.contains("BODY.PEEK[]") {

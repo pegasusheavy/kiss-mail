@@ -4,12 +4,12 @@
 //! Secured via API key or admin credentials.
 
 use axum::{
+    Json, Router,
     extract::{Path, State},
-    http::{header, StatusCode},
+    http::{StatusCode, header},
     middleware::{self, Next},
     response::{IntoResponse, Response},
     routing::{delete, get, post},
-    Json, Router,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -74,7 +74,9 @@ impl Default for AdminApiConfig {
             bind_address: std::env::var("KISS_MAIL_API_BIND")
                 .unwrap_or_else(|_| "127.0.0.1".to_string()),
             enabled: std::env::var("KISS_MAIL_API_KEY").is_ok()
-                || std::env::var("KISS_MAIL_API_ENABLED").map(|v| v == "true" || v == "1").unwrap_or(false),
+                || std::env::var("KISS_MAIL_API_ENABLED")
+                    .map(|v| v == "true" || v == "1")
+                    .unwrap_or(false),
         }
     }
 }
@@ -87,6 +89,7 @@ impl AdminApiConfig {
 
 /// Shared state for API handlers
 #[derive(Clone)]
+#[allow(dead_code)]
 pub struct ApiState {
     pub user_manager: Arc<UserManager>,
     pub group_manager: Arc<GroupManager>,
@@ -267,8 +270,7 @@ async fn auth_middleware(
     if let Some(api_key) = &state.config.api_key {
         if let Some(auth_header) = req.headers().get(header::AUTHORIZATION) {
             if let Ok(auth_str) = auth_header.to_str() {
-                if auth_str.starts_with("Bearer ") {
-                    let token = &auth_str[7..];
+                if let Some(token) = auth_str.strip_prefix("Bearer ") {
                     if token == api_key {
                         req.extensions_mut().insert(AuthUser {
                             username: "api-key".to_string(),
@@ -284,8 +286,7 @@ async fn auth_middleware(
     // Check for session token
     if let Some(auth_header) = req.headers().get(header::AUTHORIZATION) {
         if let Ok(auth_str) = auth_header.to_str() {
-            if auth_str.starts_with("Bearer ") {
-                let token = &auth_str[7..];
+            if let Some(token) = auth_str.strip_prefix("Bearer ") {
                 if let Some(user) = state.tokens.read().await.get(token).cloned() {
                     req.extensions_mut().insert(user);
                     return next.run(req).await;
@@ -309,7 +310,11 @@ async fn auth_middleware(
         }
     }
 
-    (StatusCode::UNAUTHORIZED, Json(ApiResponse::error("Unauthorized"))).into_response()
+    (
+        StatusCode::UNAUTHORIZED,
+        Json(ApiResponse::error("Unauthorized")),
+    )
+        .into_response()
 }
 
 /// Require admin privileges
@@ -328,12 +333,13 @@ fn require_admin(auth: &AuthUser) -> Result<(), (StatusCode, Json<ApiResponse<()
 // ============================================================================
 
 /// POST /api/auth/login - Login with admin credentials
-async fn login(
-    State(state): State<ApiState>,
-    Json(req): Json<AuthRequest>,
-) -> impl IntoResponse {
+async fn login(State(state): State<ApiState>, Json(req): Json<AuthRequest>) -> impl IntoResponse {
     // Authenticate user
-    match state.user_manager.authenticate(&req.username, &req.password, "api", "admin-api").await {
+    match state
+        .user_manager
+        .authenticate(&req.username, &req.password, "api", "admin-api")
+        .await
+    {
         Ok(user) => {
             // Check if admin
             let is_admin = matches!(user.role, UserRole::Admin | UserRole::SuperAdmin);
@@ -381,8 +387,7 @@ async fn logout(
 ) -> impl IntoResponse {
     if let Some(auth_header) = req.headers().get(header::AUTHORIZATION) {
         if let Ok(auth_str) = auth_header.to_str() {
-            if auth_str.starts_with("Bearer ") {
-                let token = &auth_str[7..];
+            if let Some(token) = auth_str.strip_prefix("Bearer ") {
                 state.tokens.write().await.remove(token);
             }
         }
@@ -396,7 +401,7 @@ async fn get_status(
     axum::Extension(auth): axum::Extension<AuthUser>,
 ) -> impl IntoResponse {
     let _ = auth; // Just verify authenticated
-    
+
     let users = state.user_manager.list_users().await.len();
     let groups = state.group_manager.get_stats().await.total_groups;
     let ldap_status = state.ldap_client.status();
@@ -458,13 +463,20 @@ async fn create_user(
         _ => UserRole::User,
     };
 
-    match state.user_manager.create_user(&req.username, &req.password, Some(role)).await {
+    match state
+        .user_manager
+        .create_user(&req.username, &req.password, Some(role))
+        .await
+    {
         Ok(mut user) => {
             // Update display name if provided
             if let Some(name) = req.display_name {
-                let _ = state.user_manager.update_user(&req.username, |u| {
-                    u.settings.display_name = Some(name.clone());
-                }).await;
+                let _ = state
+                    .user_manager
+                    .update_user(&req.username, |u| {
+                        u.settings.display_name = Some(name.clone());
+                    })
+                    .await;
                 user.settings.display_name = Some(name);
             }
             Json(ApiResponse::success(UserInfo::from(&user))).into_response()
@@ -521,7 +533,11 @@ async fn update_user(
 
     // Update password
     if let Some(password) = req.password {
-        if let Err(e) = state.user_manager.admin_reset_password(&username, &password, &admin_actor, false).await {
+        if let Err(e) = state
+            .user_manager
+            .admin_reset_password(&username, &password, &admin_actor, false)
+            .await
+        {
             return (
                 StatusCode::BAD_REQUEST,
                 Json(ApiResponse::<()>::error(format!("{:?}", e))),
@@ -537,14 +553,20 @@ async fn update_user(
             "superadmin" => UserRole::SuperAdmin,
             _ => UserRole::User,
         };
-        let _ = state.user_manager.set_role(&username, role, &admin_actor).await;
+        let _ = state
+            .user_manager
+            .set_role(&username, role, &admin_actor)
+            .await;
     }
 
     // Update display name
     if let Some(name) = req.display_name {
-        let _ = state.user_manager.update_user(&username, |u| {
-            u.settings.display_name = Some(name.clone());
-        }).await;
+        let _ = state
+            .user_manager
+            .update_user(&username, |u| {
+                u.settings.display_name = Some(name.clone());
+            })
+            .await;
     }
 
     // Update status
@@ -556,7 +578,10 @@ async fn update_user(
             _ => None,
         };
         if let Some(s) = status {
-            let _ = state.user_manager.set_status(&username, s, &admin_actor).await;
+            let _ = state
+                .user_manager
+                .set_status(&username, s, &admin_actor)
+                .await;
         }
     }
 
@@ -581,7 +606,11 @@ async fn delete_user(
     }
 
     let admin_actor = api_admin_actor();
-    match state.user_manager.delete_user(&username, &admin_actor).await {
+    match state
+        .user_manager
+        .delete_user(&username, &admin_actor)
+        .await
+    {
         Ok(_) => Json(ApiResponse::success(())).into_response(),
         Err(e) => (
             StatusCode::BAD_REQUEST,
@@ -612,7 +641,11 @@ async fn list_groups(
         .map(|g| GroupInfo {
             name: g.name,
             email: g.email,
-            description: if g.description.is_empty() { None } else { Some(g.description) },
+            description: if g.description.is_empty() {
+                None
+            } else {
+                Some(g.description)
+            },
             members: g.members.into_iter().collect(),
             managers: g.managers.into_iter().collect(),
             owner: g.owner,
@@ -653,7 +686,11 @@ async fn create_group(
             Json(ApiResponse::success(GroupInfo {
                 name: group.name,
                 email: group.email,
-                description: if group.description.is_empty() { None } else { Some(group.description) },
+                description: if group.description.is_empty() {
+                    None
+                } else {
+                    Some(group.description)
+                },
                 members: group.members.into_iter().collect(),
                 managers: group.managers.into_iter().collect(),
                 owner: group.owner,
@@ -683,7 +720,11 @@ async fn get_group(
         Some(group) => Json(ApiResponse::success(GroupInfo {
             name: group.name,
             email: group.email,
-            description: if group.description.is_empty() { None } else { Some(group.description) },
+            description: if group.description.is_empty() {
+                None
+            } else {
+                Some(group.description)
+            },
             members: group.members.into_iter().collect(),
             managers: group.managers.into_iter().collect(),
             owner: group.owner,
@@ -729,7 +770,11 @@ async fn add_group_member(
         return e.into_response();
     }
 
-    match state.group_manager.add_member(&name, &req.username, "api-admin").await {
+    match state
+        .group_manager
+        .add_member(&name, &req.username, "api-admin")
+        .await
+    {
         Ok(_) => Json(ApiResponse::success(())).into_response(),
         Err(e) => (
             StatusCode::BAD_REQUEST,
@@ -749,7 +794,11 @@ async fn remove_group_member(
         return e.into_response();
     }
 
-    match state.group_manager.remove_member(&name, &username, "api-admin").await {
+    match state
+        .group_manager
+        .remove_member(&name, &username, "api-admin")
+        .await
+    {
         Ok(_) => Json(ApiResponse::success(())).into_response(),
         Err(e) => (
             StatusCode::BAD_REQUEST,
@@ -789,7 +838,7 @@ async fn create_app_password(
     }
 
     let label = req.label.unwrap_or_else(|| "Remote CLI".to_string());
-    
+
     match state
         .sso_manager
         .generate_app_password(&username, &label, req.expires_days)
@@ -801,11 +850,7 @@ async fn create_app_password(
             expires_at: None, // Would need to calculate from expires_days
         }))
         .into_response(),
-        Err(e) => (
-            StatusCode::BAD_REQUEST,
-            Json(ApiResponse::<()>::error(e)),
-        )
-            .into_response(),
+        Err(e) => (StatusCode::BAD_REQUEST, Json(ApiResponse::<()>::error(e))).into_response(),
     }
 }
 
@@ -858,11 +903,7 @@ async fn ldap_test(
 
     match state.ldap_client.test_connection().await {
         Ok(msg) => Json(ApiResponse::success(msg)).into_response(),
-        Err(e) => (
-            StatusCode::BAD_REQUEST,
-            Json(ApiResponse::<()>::error(e)),
-        )
-            .into_response(),
+        Err(e) => (StatusCode::BAD_REQUEST, Json(ApiResponse::<()>::error(e))).into_response(),
     }
 }
 
@@ -941,14 +982,19 @@ pub fn create_router(mut state: ApiState) -> Router {
         .route("/api/ldap/test", post(ldap_test))
         // SSO
         .route("/api/sso/status", get(sso_status))
-        .layer(middleware::from_fn_with_state(state.clone(), auth_middleware))
+        .layer(middleware::from_fn_with_state(
+            state.clone(),
+            auth_middleware,
+        ))
         .with_state(state);
 
     public_routes.merge(protected_routes)
 }
 
 /// Start the admin API server
-pub async fn run_api_server(state: ApiState) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+pub async fn run_api_server(
+    state: ApiState,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     if !state.config.enabled {
         tracing::info!("Admin API disabled (set KISS_MAIL_API_KEY to enable)");
         return Ok(());
@@ -1001,6 +1047,7 @@ impl RemoteClient {
         self
     }
 
+    #[allow(dead_code)]
     pub async fn login(&mut self, username: &str, password: &str) -> Result<(), String> {
         let resp = self
             .client
@@ -1031,23 +1078,23 @@ impl RemoteClient {
     }
 
     fn auth_header(&self) -> Option<String> {
-        if let Some(key) = &self.api_key {
-            Some(format!("Bearer {}", key))
-        } else if let Some(token) = &self.token {
-            Some(format!("Bearer {}", token))
-        } else {
-            None
-        }
+        self.api_key
+            .as_ref()
+            .or(self.token.as_ref())
+            .map(|t| format!("Bearer {}", t))
     }
 
     async fn get<T: serde::de::DeserializeOwned>(&self, path: &str) -> Result<T, String> {
         let mut req = self.client.get(format!("{}{}", self.base_url, path));
-        
+
         if let Some(auth) = self.auth_header() {
             req = req.header("Authorization", auth);
         }
 
-        let resp = req.send().await.map_err(|e| format!("Request failed: {}", e))?;
+        let resp = req
+            .send()
+            .await
+            .map_err(|e| format!("Request failed: {}", e))?;
         let result: ApiResponse<T> = resp
             .json()
             .await
@@ -1074,7 +1121,10 @@ impl RemoteClient {
             req = req.header("Authorization", auth);
         }
 
-        let resp = req.send().await.map_err(|e| format!("Request failed: {}", e))?;
+        let resp = req
+            .send()
+            .await
+            .map_err(|e| format!("Request failed: {}", e))?;
         let result: ApiResponse<T> = resp
             .json()
             .await
@@ -1094,7 +1144,10 @@ impl RemoteClient {
             req = req.header("Authorization", auth);
         }
 
-        let resp = req.send().await.map_err(|e| format!("Request failed: {}", e))?;
+        let resp = req
+            .send()
+            .await
+            .map_err(|e| format!("Request failed: {}", e))?;
         let result: ApiResponse<()> = resp
             .json()
             .await
@@ -1112,7 +1165,12 @@ impl RemoteClient {
         self.get("/api/users").await
     }
 
-    pub async fn create_user(&self, username: &str, password: &str, role: Option<&str>) -> Result<UserInfo, String> {
+    pub async fn create_user(
+        &self,
+        username: &str,
+        password: &str,
+        role: Option<&str>,
+    ) -> Result<UserInfo, String> {
         self.post(
             "/api/users",
             &CreateUserRequest {

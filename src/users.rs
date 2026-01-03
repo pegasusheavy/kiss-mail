@@ -3,8 +3,8 @@
 //! Provides user CRUD operations, authentication, roles, quotas, and admin functions.
 
 use argon2::{
-    password_hash::{rand_core::OsRng, PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
     Argon2,
+    password_hash::{PasswordHash, PasswordHasher, PasswordVerifier, SaltString, rand_core::OsRng},
 };
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -14,20 +14,15 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 
 /// User role for access control
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub enum UserRole {
     /// Regular user - can send/receive emails
+    #[default]
     User,
     /// Administrator - can manage users and server settings
     Admin,
     /// Super administrator - full access including other admins
     SuperAdmin,
-}
-
-impl Default for UserRole {
-    fn default() -> Self {
-        Self::User
-    }
 }
 
 impl std::fmt::Display for UserRole {
@@ -41,9 +36,10 @@ impl std::fmt::Display for UserRole {
 }
 
 /// Account status
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub enum AccountStatus {
     /// Account is active and can be used
+    #[default]
     Active,
     /// Account is suspended (can't login)
     Suspended,
@@ -53,12 +49,6 @@ pub enum AccountStatus {
     PendingVerification,
     /// Account is disabled permanently
     Disabled,
-}
-
-impl Default for AccountStatus {
-    fn default() -> Self {
-        Self::Active
-    }
 }
 
 impl std::fmt::Display for AccountStatus {
@@ -341,7 +331,13 @@ impl UserAccount {
     }
 
     /// Record a login attempt
-    pub fn record_login(&mut self, ip: &str, protocol: &str, success: bool, failure_reason: Option<&str>) {
+    pub fn record_login(
+        &mut self,
+        ip: &str,
+        protocol: &str,
+        success: bool,
+        failure_reason: Option<&str>,
+    ) {
         let record = LoginRecord {
             timestamp: Utc::now(),
             ip_address: ip.to_string(),
@@ -376,8 +372,12 @@ impl UserAccount {
         match self.status {
             AccountStatus::Active => Ok(()),
             AccountStatus::Suspended => Err("Account is suspended".to_string()),
-            AccountStatus::Locked => Err("Account is locked due to too many failed login attempts".to_string()),
-            AccountStatus::PendingVerification => Err("Account is pending email verification".to_string()),
+            AccountStatus::Locked => {
+                Err("Account is locked due to too many failed login attempts".to_string())
+            }
+            AccountStatus::PendingVerification => {
+                Err("Account is pending email verification".to_string())
+            }
             AccountStatus::Disabled => Err("Account is disabled".to_string()),
         }
     }
@@ -495,14 +495,20 @@ impl UserManager {
         // Validate username
         let username = username.to_lowercase().trim().to_string();
         if username.is_empty() {
-            return Err(UserError::InvalidInput("Username cannot be empty".to_string()));
+            return Err(UserError::InvalidInput(
+                "Username cannot be empty".to_string(),
+            ));
         }
         if username.len() > 64 {
             return Err(UserError::InvalidInput("Username too long".to_string()));
         }
-        if !username.chars().all(|c| c.is_alphanumeric() || c == '.' || c == '_' || c == '-') {
+        if !username
+            .chars()
+            .all(|c| c.is_alphanumeric() || c == '.' || c == '_' || c == '-')
+        {
             return Err(UserError::InvalidInput(
-                "Username can only contain letters, numbers, dots, underscores, and hyphens".to_string(),
+                "Username can only contain letters, numbers, dots, underscores, and hyphens"
+                    .to_string(),
             ));
         }
 
@@ -520,7 +526,7 @@ impl UserManager {
         }
 
         let mut account = UserAccount::new(username.clone(), password, self.default_domain.clone())
-            .map_err(|e| UserError::StorageError(e))?;
+            .map_err(UserError::StorageError)?;
 
         if let Some(r) = role {
             account.role = r;
@@ -548,7 +554,11 @@ impl UserManager {
     }
 
     /// Update a user
-    pub async fn update_user<F>(&self, username: &str, update_fn: F) -> Result<UserAccount, UserError>
+    pub async fn update_user<F>(
+        &self,
+        username: &str,
+        update_fn: F,
+    ) -> Result<UserAccount, UserError>
     where
         F: FnOnce(&mut UserAccount),
     {
@@ -626,8 +636,7 @@ impl UserManager {
             .ok_or_else(|| UserError::NotFound(username.clone()))?;
 
         // Check if account can login
-        user.can_login()
-            .map_err(|e| UserError::AccountLocked(e))?;
+        user.can_login().map_err(UserError::AccountLocked)?;
 
         // Check IP restrictions
         if !user.is_ip_allowed(ip) {
@@ -691,11 +700,13 @@ impl UserManager {
 
         // Verify old password
         if !user.verify_password(old_password) {
-            return Err(UserError::InvalidPassword("Current password is incorrect".to_string()));
+            return Err(UserError::InvalidPassword(
+                "Current password is incorrect".to_string(),
+            ));
         }
 
         user.change_password(new_password)
-            .map_err(|e| UserError::StorageError(e))?;
+            .map_err(UserError::StorageError)?;
 
         drop(users);
         let _ = self.save().await;
@@ -742,7 +753,7 @@ impl UserManager {
         }
 
         user.change_password(new_password)
-            .map_err(|e| UserError::StorageError(e))?;
+            .map_err(UserError::StorageError)?;
         user.password_change_required = require_change;
 
         // Unlock if locked
@@ -894,7 +905,11 @@ impl UserManager {
         drop(users);
         let _ = self.save().await;
 
-        tracing::info!("Quota updated for user {} (by {})", username, actor.username);
+        tracing::info!(
+            "Quota updated for user {} (by {})",
+            username,
+            actor.username
+        );
         Ok(())
     }
 
@@ -929,7 +944,11 @@ impl UserManager {
                     let q = q.to_lowercase();
                     if !u.username.contains(&q)
                         && !u.email().contains(&q)
-                        && !u.settings.display_name.as_ref().is_some_and(|n| n.to_lowercase().contains(&q))
+                        && !u
+                            .settings
+                            .display_name
+                            .as_ref()
+                            .is_some_and(|n| n.to_lowercase().contains(&q))
                     {
                         return false;
                     }
@@ -941,6 +960,7 @@ impl UserManager {
     }
 
     /// Get user statistics
+    #[allow(clippy::field_reassign_with_default)]
     pub async fn get_stats(&self) -> UserStats {
         let users = self.users.read().await;
 
@@ -977,7 +997,9 @@ impl UserManager {
         }
         drop(users);
 
-        let mut admin = self.create_user("admin", password, Some(UserRole::SuperAdmin)).await?;
+        let mut admin = self
+            .create_user("admin", password, Some(UserRole::SuperAdmin))
+            .await?;
         admin.settings.display_name = Some("System Administrator".to_string());
 
         self.update_user("admin", |u| {
@@ -1036,6 +1058,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::field_reassign_with_default)]
     fn test_quota_checks() {
         let mut quota = UserQuota::default();
         quota.max_mailbox_size = 1000;
@@ -1072,10 +1095,14 @@ mod tests {
 
     #[tokio::test]
     async fn test_user_manager() {
-        let manager = UserManager::new("test.com".to_string(), PathBuf::from("/tmp/kiss-mail-test"));
+        let manager =
+            UserManager::new("test.com".to_string(), PathBuf::from("/tmp/kiss-mail-test"));
 
         // Create user
-        let user = manager.create_user("john", "password123", None).await.unwrap();
+        let user = manager
+            .create_user("john", "password123", None)
+            .await
+            .unwrap();
         assert_eq!(user.username, "john");
         assert_eq!(user.role, UserRole::User);
 
@@ -1088,6 +1115,11 @@ mod tests {
         assert_eq!(retrieved.username, "john");
 
         // Duplicate should fail
-        assert!(manager.create_user("john", "password456", None).await.is_err());
+        assert!(
+            manager
+                .create_user("john", "password456", None)
+                .await
+                .is_err()
+        );
     }
 }

@@ -1,5 +1,7 @@
 # Rustfmt configuration for KISS Mail
 # https://rust-lang.github.io/rustfmt/
+#
+# Note: Only stable options are used to ensure compatibility with stable Rust.
 
 # Use Rust 2024 edition style
 edition = "2024"
@@ -14,39 +16,12 @@ tab_spaces = 4
 # Newline style (native to respect .editorconfig)
 newline_style = "Auto"
 
-# Import organization
-imports_granularity = "Module"
-group_imports = "StdExternalCrate"
+# Reorder imports and modules
 reorder_imports = true
 reorder_modules = true
-
-# Function and struct formatting
-fn_params_layout = "Tall"
-struct_lit_single_line = true
 
 # Use field init shorthand (e.g., `Foo { x }` instead of `Foo { x: x }`)
 use_field_init_shorthand = true
 
-# Format string literals
-format_strings = false
-
-# Trailing commas
-trailing_comma = "Vertical"
-trailing_semicolon = true
-match_block_trailing_comma = true
-
-# Comment formatting
-comment_width = 80
-wrap_comments = false
-normalize_comments = false
-normalize_doc_attributes = false
-
-# Control flow
-indent_style = "Block"
-brace_style = "SameLineWhere"
-control_brace_style = "AlwaysSameLine"
-
-# Misc
+# Remove nested parens
 remove_nested_parens = true
-combine_control_expr = true
-overflow_delimited_expr = false
