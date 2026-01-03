@@ -38,7 +38,7 @@ Before proposing a new feature, ask yourself:
 
 ### Prerequisites
 
-- **Rust**: 1.75.0 or later
+- **Rust**: 1.85.0 or later (Rust 2024 edition)
 - **Git**: For version control
 - **Docker** (optional): For testing containerized builds
 

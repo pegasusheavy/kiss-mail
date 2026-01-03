@@ -1,1 +1,178 @@
-/target
+# =============================================================================
+# Rust / Cargo
+# =============================================================================
+
+# Compiled files
+/target/
+**/*.rs.bk
+
+# Build artifacts
+*.pdb
+
+# Cargo.lock is included for binaries, but not for libraries
+# Since this is an application, we keep Cargo.lock
+
+# =============================================================================
+# IDE / Editors
+# =============================================================================
+
+# VSCode / Cursor
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+
+# IntelliJ / CLion / RustRover
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Vim
+*.swp
+*.swo
+*~
+.*.sw?
+
+# Emacs
+*~
+\#*\#
+.\#*
+
+# Sublime Text
+*.sublime-workspace
+*.sublime-project
+
+# =============================================================================
+# OS Generated Files
+# =============================================================================
+
+# macOS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Icon?
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+
+# =============================================================================
+# Application Data (for development)
+# =============================================================================
+
+# Mail data directory (generated during development)
+mail_data/
+/data/
+
+# Log files
+*.log
+logs/
+
+# =============================================================================
+# Testing & Coverage
+# =============================================================================
+
+# Coverage reports
+coverage/
+*.profraw
+*.profdata
+lcov.info
+tarpaulin-report.html
+cobertura.xml
+
+# Test artifacts
+.test_*
+test_output/
+
+# =============================================================================
+# Environment & Secrets
+# =============================================================================
+
+# Environment files
+.env
+.env.local
+.env.*.local
+*.env
+
+# Secrets
+*.pem
+*.key
+*.crt
+!deploy/**/*.example
+secrets/
+
+# =============================================================================
+# Terraform (deploy directory)
+# =============================================================================
+
+# Local .terraform directories
+**/.terraform/*
+
+# Terraform state files
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+
+# Crash log files
+crash.log
+crash.*.log
+
+# Terraform variable files (may contain secrets)
+*.tfvars
+!*.tfvars.example
+*.auto.tfvars
+
+# Override files
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Terraform lock file (include for reproducibility)
+# .terraform.lock.hcl
+
+# =============================================================================
+# Docker
+# =============================================================================
+
+# Docker build artifacts
+.docker/
+
+# =============================================================================
+# Misc
+# =============================================================================
+
+# Backup files
+*.bak
+*.backup
+*.old
+
+# Temporary files
+*.tmp
+*.temp
+tmp/
+temp/
+
+# Archives
+*.tar
+*.tar.gz
+*.tgz
+*.zip
+*.7z
+
+# Release artifacts (built locally)
+dist/
+release/

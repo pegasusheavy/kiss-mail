@@ -2,8 +2,25 @@
 name = "kiss-mail"
 version = "0.1.0"
 edition = "2024"
+rust-version = "1.85.0"
 description = "A KISS (Keep It Simple, Stupid) SMTP, IMAP, and POP3 mail server"
 license = "MIT"
+authors = ["Pegasus Heavy Industries <contact@pegasusheavy.com>"]
+repository = "https://github.com/pegasusheavy/kiss-mail"
+homepage = "https://github.com/pegasusheavy/kiss-mail"
+documentation = "https://docs.rs/kiss-mail"
+readme = "README.md"
+keywords = ["email", "smtp", "imap", "pop3", "mail-server"]
+categories = ["email", "network-programming", "command-line-utilities"]
+exclude = [
+    ".github/",
+    "deploy/",
+    "target/",
+    "*.md",
+    "!README.md",
+    "docker-compose.yml",
+    "Dockerfile*",
+]
 
 [dependencies]
 tokio = { version = "1", features = ["full"] }
