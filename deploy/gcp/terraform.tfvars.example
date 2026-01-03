@@ -1,0 +1,20 @@
+# ============================================================================
+# KISS Mail - Google Cloud Platform Variables
+# ============================================================================
+# Copy to terraform.tfvars and customize
+
+# GCP Project ID (required)
+project_id = "your-project-id"
+
+# Region and zone
+region = "us-central1"
+zone   = "us-central1-a"
+
+# Machine type (e2-micro is free tier eligible)
+machine_type = "e2-micro"
+
+# Mail domain
+domain = "mail.example.com"
+
+# Boot disk size (GB)
+disk_size = 20

@@ -1,0 +1,35 @@
+# ============================================================================
+# KISS Mail - ConfigMap
+# ============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kiss-mail-config
+  namespace: kiss-mail
+  labels:
+    app.kubernetes.io/name: kiss-mail
+    app.kubernetes.io/component: config
+data:
+  # Domain configuration
+  KISS_MAIL_DOMAIN: "mail.example.com"
+  
+  # Port configuration
+  KISS_MAIL_SMTP_PORT: "2525"
+  KISS_MAIL_IMAP_PORT: "1143"
+  KISS_MAIL_POP3_PORT: "1100"
+  KISS_MAIL_WEB_PORT: "8080"
+  KISS_MAIL_API_PORT: "8025"
+  
+  # Bind addresses
+  KISS_MAIL_WEB_BIND: "0.0.0.0"
+  KISS_MAIL_API_BIND: "0.0.0.0"
+  
+  # Data directory
+  KISS_MAIL_DATA_DIR: "/data"
+  
+  # Logging
+  RUST_LOG: "info"
+  
+  # ClamAV (optional)
+  KISS_MAIL_CLAMAV_ADDRESS: "clamav:3310"
+  KISS_MAIL_CLAMAV_ENABLED: "false"

@@ -1,0 +1,32 @@
+apiVersion: v2
+name: kiss-mail
+description: KISS Mail Server - Simple SMTP, IMAP, POP3 email server
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+
+keywords:
+  - email
+  - smtp
+  - imap
+  - pop3
+  - mail-server
+
+home: https://github.com/pegasusheavy/kiss-mail
+
+sources:
+  - https://github.com/pegasusheavy/kiss-mail
+
+maintainers:
+  - name: Pegasus Heavy Industries
+    url: https://github.com/pegasusheavy
+
+icon: https://raw.githubusercontent.com/pegasusheavy/kiss-mail/main/icon.png
+
+annotations:
+  artifacthub.io/license: MIT
+  artifacthub.io/links: |
+    - name: Documentation
+      url: https://github.com/pegasusheavy/kiss-mail#readme
+    - name: Support
+      url: https://github.com/pegasusheavy/kiss-mail/issues

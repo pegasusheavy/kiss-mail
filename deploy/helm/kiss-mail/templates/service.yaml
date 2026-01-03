@@ -1,0 +1,78 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "kiss-mail.fullname" . }}
+  labels:
+    {{- include "kiss-mail.labels" . | nindent 4 }}
+  {{- with .Values.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.service.type }}
+  selector:
+    {{- include "kiss-mail.selectorLabels" . | nindent 4 }}
+  ports:
+    - name: smtp
+      port: {{ .Values.ports.smtp }}
+      targetPort: smtp
+      protocol: TCP
+    - name: imap
+      port: {{ .Values.ports.imap }}
+      targetPort: imap
+      protocol: TCP
+    - name: pop3
+      port: {{ .Values.ports.pop3 }}
+      targetPort: pop3
+      protocol: TCP
+    {{- if .Values.webAdmin.enabled }}
+    - name: web
+      port: {{ .Values.ports.web }}
+      targetPort: web
+      protocol: TCP
+    {{- end }}
+    {{- if .Values.api.enabled }}
+    - name: api
+      port: {{ .Values.ports.api }}
+      targetPort: api
+      protocol: TCP
+    {{- end }}
+---
+{{- if .Values.externalService.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "kiss-mail.fullname" . }}-external
+  labels:
+    {{- include "kiss-mail.labels" . | nindent 4 }}
+    app.kubernetes.io/component: external
+  {{- with .Values.externalService.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.externalService.type }}
+  selector:
+    {{- include "kiss-mail.selectorLabels" . | nindent 4 }}
+  ports:
+    - name: smtp
+      port: {{ .Values.externalService.ports.smtp }}
+      targetPort: smtp
+      protocol: TCP
+    - name: smtp-alt
+      port: {{ .Values.externalService.ports.smtpAlt }}
+      targetPort: smtp
+      protocol: TCP
+    - name: imap
+      port: {{ .Values.externalService.ports.imap }}
+      targetPort: imap
+      protocol: TCP
+    - name: pop3
+      port: {{ .Values.externalService.ports.pop3 }}
+      targetPort: pop3
+      protocol: TCP
+  {{- with .Values.externalService.loadBalancerSourceRanges }}
+  loadBalancerSourceRanges:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}

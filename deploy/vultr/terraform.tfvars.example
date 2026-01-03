@@ -1,0 +1,20 @@
+# ============================================================================
+# KISS Mail - Vultr Variables
+# ============================================================================
+
+# Vultr API key
+vultr_api_key = "your-vultr-api-key"
+
+# Region (vultr-cli regions list)
+region = "ewr"  # New Jersey
+
+# Plan (vultr-cli plans list)
+# vc2-1c-1gb = $5/month
+# vc2-1c-2gb = $10/month
+plan = "vc2-1c-1gb"
+
+# Mail domain
+domain = "mail.example.com"
+
+# SSH key IDs (optional)
+# ssh_keys = ["key-id-1", "key-id-2"]

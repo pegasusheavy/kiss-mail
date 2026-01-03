@@ -1,0 +1,103 @@
+name: ✨ Feature Request
+description: Suggest a new feature or enhancement
+title: "[Feature]: "
+labels: ["enhancement", "triage"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting a feature! Please fill out the form below.
+        
+        Remember: KISS Mail follows the "Keep It Simple, Stupid" philosophy. 
+        Features should be simple, useful, and not add unnecessary complexity.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Pre-flight Checklist
+      options:
+        - label: I have searched existing issues and this feature hasn't been requested
+          required: true
+        - label: This feature aligns with the KISS philosophy
+          required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Statement
+      description: What problem are you trying to solve? What use case does this address?
+      placeholder: I'm always frustrated when...
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: How would you like this to work?
+      placeholder: I'd like to be able to...
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: What alternatives have you considered? Are there workarounds?
+      placeholder: I've tried... but it doesn't work because...
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      description: Which part of KISS Mail does this affect?
+      options:
+        - SMTP Server
+        - IMAP Server
+        - POP3 Server
+        - Web Admin Dashboard
+        - REST API
+        - CLI
+        - Encryption
+        - Anti-Spam
+        - Anti-Virus
+        - User Management
+        - Groups/Distribution Lists
+        - LDAP Integration
+        - SSO Integration
+        - Docker/Kubernetes
+        - Documentation
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: How important is this feature to you?
+      options:
+        - Nice to have
+        - Would be useful
+        - Important for my use case
+        - Critical blocker
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Contribution
+      description: Would you be willing to help implement this feature?
+      options:
+        - label: I'm willing to submit a PR for this feature
+        - label: I can help test this feature
+        - label: I can help document this feature
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Any other context, mockups, or examples that might help.

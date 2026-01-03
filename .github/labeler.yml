@@ -1,0 +1,160 @@
+# Labeler configuration for auto-labeling PRs
+# https://github.com/actions/labeler
+
+# Core components
+smtp:
+  - changed-files:
+      - any-glob-to-any-file: 'src/smtp.rs'
+
+imap:
+  - changed-files:
+      - any-glob-to-any-file: 'src/imap.rs'
+
+pop3:
+  - changed-files:
+      - any-glob-to-any-file: 'src/pop3.rs'
+
+encryption:
+  - changed-files:
+      - any-glob-to-any-file: 'src/crypto.rs'
+
+storage:
+  - changed-files:
+      - any-glob-to-any-file: 'src/storage.rs'
+
+users:
+  - changed-files:
+      - any-glob-to-any-file: 'src/users.rs'
+
+groups:
+  - changed-files:
+      - any-glob-to-any-file: 'src/groups.rs'
+
+# Security
+anti-spam:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'src/antispam.rs'
+          - 'src/spam_ai.rs'
+
+anti-virus:
+  - changed-files:
+      - any-glob-to-any-file: 'src/antivirus.rs'
+
+security:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'src/crypto.rs'
+          - 'SECURITY.md'
+
+# Integrations
+ldap:
+  - changed-files:
+      - any-glob-to-any-file: 'src/ldap.rs'
+
+sso:
+  - changed-files:
+      - any-glob-to-any-file: 'src/sso.rs'
+
+# Admin
+web-admin:
+  - changed-files:
+      - any-glob-to-any-file: 'src/admin_web.rs'
+
+api:
+  - changed-files:
+      - any-glob-to-any-file: 'src/admin_api.rs'
+
+cli:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'src/admin.rs'
+          - 'src/main.rs'
+
+# Infrastructure
+docker:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'Dockerfile'
+          - 'docker-compose.yml'
+          - '.dockerignore'
+
+kubernetes:
+  - changed-files:
+      - any-glob-to-any-file: 'deploy/kubernetes/**'
+
+helm:
+  - changed-files:
+      - any-glob-to-any-file: 'deploy/helm/**'
+
+terraform:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'deploy/aws/**'
+          - 'deploy/digitalocean/**'
+
+# CI/CD
+ci:
+  - changed-files:
+      - any-glob-to-any-file: '.github/workflows/**'
+
+# Documentation
+documentation:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '*.md'
+          - 'docs/**'
+          - '.github/ISSUE_TEMPLATE/**'
+          - '.github/PULL_REQUEST_TEMPLATE.md'
+
+# Dependencies
+dependencies:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'Cargo.toml'
+          - 'Cargo.lock'
+
+# Size labels (based on lines changed)
+size/XS:
+  - changed-files:
+      - any-glob-to-any-file: '**/*'
+    all:
+      - head-branch: '^(?!dependabot)'
+    size:
+      above: 0
+      below: 10
+
+size/S:
+  - changed-files:
+      - any-glob-to-any-file: '**/*'
+    all:
+      - head-branch: '^(?!dependabot)'
+    size:
+      above: 9
+      below: 50
+
+size/M:
+  - changed-files:
+      - any-glob-to-any-file: '**/*'
+    all:
+      - head-branch: '^(?!dependabot)'
+    size:
+      above: 49
+      below: 200
+
+size/L:
+  - changed-files:
+      - any-glob-to-any-file: '**/*'
+    all:
+      - head-branch: '^(?!dependabot)'
+    size:
+      above: 199
+      below: 500
+
+size/XL:
+  - changed-files:
+      - any-glob-to-any-file: '**/*'
+    all:
+      - head-branch: '^(?!dependabot)'
+    size:
+      above: 499

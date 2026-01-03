@@ -1,0 +1,37 @@
+# ============================================================================
+# KISS Mail - Digital Ocean Terraform Variables
+# ============================================================================
+# Copy this file to terraform.tfvars and customize:
+#   cp terraform.tfvars.example terraform.tfvars
+# ============================================================================
+
+# Digital Ocean API token (required)
+# Get from: https://cloud.digitalocean.com/account/api/tokens
+do_token = "your-digitalocean-api-token"
+
+# Region (see: doctl compute region list)
+region = "nyc1"
+
+# Droplet size (see: doctl compute size list)
+# s-1vcpu-1gb = $6/month (minimum)
+# s-1vcpu-2gb = $12/month
+# s-2vcpu-2gb = $18/month
+droplet_size = "s-1vcpu-1gb"
+
+# Your mail domain
+domain = "mail.example.com"
+
+# Initial admin password (optional - will be auto-generated if empty)
+# admin_password = "your-secure-password"
+
+# SSH key IDs or fingerprints (get with: doctl compute ssh-key list)
+# ssh_keys = ["12345678", "ab:cd:ef:..."]
+
+# Project name
+project_name = "kiss-mail"
+
+# Enable automated backups (+20% cost)
+enable_backups = false
+
+# Enable monitoring (free)
+enable_monitoring = true

@@ -1,0 +1,60 @@
+# ============================================================================
+# KISS Mail - Ingress (Web Admin & API)
+# ============================================================================
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: kiss-mail-web
+  namespace: kiss-mail
+  labels:
+    app.kubernetes.io/name: kiss-mail
+    app.kubernetes.io/component: ingress
+  annotations:
+    # Nginx Ingress Controller
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    
+    # Cert-manager (for automatic TLS certificates)
+    # cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    
+    # Traefik
+    # traefik.ingress.kubernetes.io/router.tls: "true"
+spec:
+  ingressClassName: nginx  # Change to your ingress controller
+  
+  # TLS configuration (uncomment for HTTPS)
+  # tls:
+  #   - hosts:
+  #       - mail.example.com
+  #     secretName: kiss-mail-tls
+  
+  rules:
+    - host: mail.example.com
+      http:
+        paths:
+          # Web Admin Dashboard
+          - path: /admin
+            pathType: Prefix
+            backend:
+              service:
+                name: kiss-mail
+                port:
+                  name: web
+          
+          # REST API
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: kiss-mail
+                port:
+                  name: api
+          
+          # Root redirect to admin
+          - path: /
+            pathType: Exact
+            backend:
+              service:
+                name: kiss-mail
+                port:
+                  name: web

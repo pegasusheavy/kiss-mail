@@ -1,0 +1,83 @@
+# ============================================================================
+# KISS Mail - Services
+# ============================================================================
+
+# ----------------------------------------------------------------------------
+# ClusterIP Service (Internal)
+# ----------------------------------------------------------------------------
+apiVersion: v1
+kind: Service
+metadata:
+  name: kiss-mail
+  namespace: kiss-mail
+  labels:
+    app.kubernetes.io/name: kiss-mail
+    app.kubernetes.io/component: server
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: kiss-mail
+    app.kubernetes.io/component: server
+  ports:
+    - name: smtp
+      port: 2525
+      targetPort: smtp
+      protocol: TCP
+    - name: imap
+      port: 1143
+      targetPort: imap
+      protocol: TCP
+    - name: pop3
+      port: 1100
+      targetPort: pop3
+      protocol: TCP
+    - name: web
+      port: 8080
+      targetPort: web
+      protocol: TCP
+    - name: api
+      port: 8025
+      targetPort: api
+      protocol: TCP
+
+---
+# ----------------------------------------------------------------------------
+# LoadBalancer Service (External - Mail Ports)
+# ----------------------------------------------------------------------------
+apiVersion: v1
+kind: Service
+metadata:
+  name: kiss-mail-external
+  namespace: kiss-mail
+  labels:
+    app.kubernetes.io/name: kiss-mail
+    app.kubernetes.io/component: external
+  annotations:
+    # Cloud provider annotations (uncomment as needed)
+    # service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+    # service.beta.kubernetes.io/azure-load-balancer-internal: "false"
+spec:
+  type: LoadBalancer
+  selector:
+    app.kubernetes.io/name: kiss-mail
+    app.kubernetes.io/component: server
+  ports:
+    - name: smtp
+      port: 25
+      targetPort: smtp
+      protocol: TCP
+    - name: smtp-alt
+      port: 587
+      targetPort: smtp
+      protocol: TCP
+    - name: imap
+      port: 143
+      targetPort: imap
+      protocol: TCP
+    - name: pop3
+      port: 110
+      targetPort: pop3
+      protocol: TCP
+  # Optional: Restrict source IPs
+  # loadBalancerSourceRanges:
+  #   - 10.0.0.0/8

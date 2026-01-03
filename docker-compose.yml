@@ -1,0 +1,116 @@
+# ============================================================================
+# KISS Mail Server - Docker Compose
+# ============================================================================
+# Start:  docker-compose up -d
+# Stop:   docker-compose down
+# Logs:   docker-compose logs -f
+#
+# Uses the official container image from GitHub Container Registry.
+# To build locally instead, uncomment the 'build' line below.
+# ============================================================================
+
+services:
+  # --------------------------------------------------------------------------
+  # KISS Mail Server
+  # --------------------------------------------------------------------------
+  kiss-mail:
+    image: ghcr.io/pegasusheavy/kiss-mail:latest
+    # build: .  # Uncomment to build from source instead
+    container_name: kiss-mail
+    restart: unless-stopped
+    ports:
+      # SMTP
+      - "2525:2525"
+      # IMAP
+      - "1143:1143"
+      # POP3
+      - "1100:1100"
+      # Web Admin
+      - "8080:8080"
+      # REST API
+      - "8025:8025"
+    volumes:
+      - kiss-mail-data:/data
+    environment:
+      # Domain configuration
+      KISS_MAIL_DOMAIN: ${KISS_MAIL_DOMAIN:-mail.example.com}
+      
+      # Port configuration (internal)
+      KISS_MAIL_SMTP_PORT: 2525
+      KISS_MAIL_IMAP_PORT: 1143
+      KISS_MAIL_POP3_PORT: 1100
+      KISS_MAIL_WEB_PORT: 8080
+      KISS_MAIL_API_PORT: 8025
+      
+      # Bind to all interfaces inside container
+      KISS_MAIL_WEB_BIND: "0.0.0.0"
+      KISS_MAIL_API_BIND: "0.0.0.0"
+      
+      # API key (set this for remote administration)
+      KISS_MAIL_API_KEY: ${KISS_MAIL_API_KEY:-}
+      
+      # LDAP configuration (optional)
+      KISS_MAIL_LDAP_URL: ${KISS_MAIL_LDAP_URL:-}
+      KISS_MAIL_LDAP_BIND_DN: ${KISS_MAIL_LDAP_BIND_DN:-}
+      KISS_MAIL_LDAP_BIND_PASSWORD: ${KISS_MAIL_LDAP_BIND_PASSWORD:-}
+      KISS_MAIL_LDAP_BASE_DN: ${KISS_MAIL_LDAP_BASE_DN:-}
+      
+      # SSO configuration (optional)
+      KISS_MAIL_SSO_PROVIDER: ${KISS_MAIL_SSO_PROVIDER:-}
+      KISS_MAIL_SSO_CLIENT_ID: ${KISS_MAIL_SSO_CLIENT_ID:-}
+      KISS_MAIL_SSO_CLIENT_SECRET: ${KISS_MAIL_SSO_CLIENT_SECRET:-}
+      
+      # ClamAV configuration (optional - connect to clamav service)
+      KISS_MAIL_CLAMAV_ADDRESS: ${KISS_MAIL_CLAMAV_ADDRESS:-clamav:3310}
+      KISS_MAIL_CLAMAV_ENABLED: ${KISS_MAIL_CLAMAV_ENABLED:-false}
+      
+      # Logging
+      RUST_LOG: ${RUST_LOG:-info}
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "2525"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - kiss-mail-network
+    depends_on:
+      clamav:
+        condition: service_healthy
+        required: false
+
+  # --------------------------------------------------------------------------
+  # ClamAV (Optional - Antivirus Scanner)
+  # --------------------------------------------------------------------------
+  clamav:
+    image: clamav/clamav:stable
+    container_name: kiss-mail-clamav
+    restart: unless-stopped
+    profiles:
+      - antivirus
+    volumes:
+      - clamav-data:/var/lib/clamav
+    healthcheck:
+      test: ["CMD", "clamdscan", "--ping"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+    networks:
+      - kiss-mail-network
+
+# ----------------------------------------------------------------------------
+# Networks
+# ----------------------------------------------------------------------------
+networks:
+  kiss-mail-network:
+    driver: bridge
+
+# ----------------------------------------------------------------------------
+# Volumes
+# ----------------------------------------------------------------------------
+volumes:
+  kiss-mail-data:
+    name: kiss-mail-data
+  clamav-data:
+    name: kiss-mail-clamav-data

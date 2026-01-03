@@ -1,0 +1,21 @@
+# ============================================================================
+# KISS Mail - Microsoft Azure Variables
+# ============================================================================
+
+# Azure region
+location = "eastus"
+
+# VM size (Standard_B1s is cheapest)
+vm_size = "Standard_B1s"
+
+# Mail domain
+domain = "mail.example.com"
+
+# VM admin username
+admin_username = "azureuser"
+
+# SSH public key (or path will default to ~/.ssh/id_rsa.pub)
+# ssh_public_key = "ssh-rsa AAAA..."
+
+# OS disk size (GB)
+disk_size = 30

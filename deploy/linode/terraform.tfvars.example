@@ -1,0 +1,23 @@
+# ============================================================================
+# KISS Mail - Linode Variables
+# ============================================================================
+
+# Linode API token (get from cloud.linode.com)
+linode_token = "your-linode-api-token"
+
+# Region (linode-cli regions list)
+region = "us-east"
+
+# Instance type (linode-cli linodes types)
+# g6-nanode-1 = $5/month (1GB RAM)
+# g6-standard-1 = $10/month (2GB RAM)
+type = "g6-nanode-1"
+
+# Mail domain
+domain = "mail.example.com"
+
+# Root password (required)
+root_password = "your-secure-password"
+
+# SSH public keys (optional)
+# ssh_keys = ["ssh-rsa AAAA..."]

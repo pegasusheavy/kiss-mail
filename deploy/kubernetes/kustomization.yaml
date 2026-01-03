@@ -1,0 +1,41 @@
+# ============================================================================
+# KISS Mail - Kustomization
+# ============================================================================
+# Deploy: kubectl apply -k deploy/kubernetes/
+# ============================================================================
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: kiss-mail
+
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - secret.yaml
+  - pvc.yaml
+  - deployment.yaml
+  - service.yaml
+  - ingress.yaml
+
+# Common labels
+commonLabels:
+  app.kubernetes.io/part-of: kiss-mail
+  app.kubernetes.io/managed-by: kustomize
+
+# Image customization
+images:
+  - name: kiss-mail
+    newName: kiss-mail
+    newTag: latest
+
+# ConfigMap generator (alternative to static configmap.yaml)
+# configMapGenerator:
+#   - name: kiss-mail-config
+#     literals:
+#       - KISS_MAIL_DOMAIN=mail.example.com
+
+# Secret generator (for development only - use external secrets in prod)
+# secretGenerator:
+#   - name: kiss-mail-secrets
+#     literals:
+#       - KISS_MAIL_API_KEY=your-secret-key

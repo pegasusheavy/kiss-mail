@@ -1,0 +1,33 @@
+# Build artifacts
+target/
+*.rs.bk
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Git
+.git/
+.gitignore
+
+# Documentation
+*.md
+LICENSE
+
+# Deploy files (not needed in image)
+deploy/
+docker-compose*.yml
+Dockerfile*
+.dockerignore
+
+# Test data
+test_data/
+*.json
+
+# Misc
+.env*
+.DS_Store
+Thumbs.db

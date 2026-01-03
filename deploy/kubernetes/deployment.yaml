@@ -1,0 +1,117 @@
+# ============================================================================
+# KISS Mail - Deployment
+# ============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kiss-mail
+  namespace: kiss-mail
+  labels:
+    app.kubernetes.io/name: kiss-mail
+    app.kubernetes.io/component: server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: kiss-mail
+      app.kubernetes.io/component: server
+  strategy:
+    type: Recreate  # Single instance for mail server consistency
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: kiss-mail
+        app.kubernetes.io/component: server
+      annotations:
+        prometheus.io/scrape: "false"
+    spec:
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      
+      containers:
+        - name: kiss-mail
+          image: ghcr.io/pegasusheavy/kiss-mail:latest
+          imagePullPolicy: Always
+          
+          ports:
+            - name: smtp
+              containerPort: 2525
+              protocol: TCP
+            - name: imap
+              containerPort: 1143
+              protocol: TCP
+            - name: pop3
+              containerPort: 1100
+              protocol: TCP
+            - name: web
+              containerPort: 8080
+              protocol: TCP
+            - name: api
+              containerPort: 8025
+              protocol: TCP
+          
+          envFrom:
+            - configMapRef:
+                name: kiss-mail-config
+            - configMapRef:
+                name: kiss-mail-ldap-config
+                optional: true
+            - configMapRef:
+                name: kiss-mail-sso-config
+                optional: true
+            - secretRef:
+                name: kiss-mail-secrets
+                optional: true
+          
+          volumeMounts:
+            - name: data
+              mountPath: /data
+          
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 1000m
+              memory: 512Mi
+          
+          livenessProbe:
+            tcpSocket:
+              port: smtp
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          
+          readinessProbe:
+            tcpSocket:
+              port: smtp
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          
+          securityContext:
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+      
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: kiss-mail-data
+      
+      # Optional: Node selector
+      # nodeSelector:
+      #   kubernetes.io/os: linux
+      
+      # Optional: Tolerations
+      # tolerations:
+      #   - key: "dedicated"
+      #     operator: "Equal"
+      #     value: "mail"
+      #     effect: "NoSchedule"

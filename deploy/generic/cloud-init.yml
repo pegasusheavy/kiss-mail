@@ -1,0 +1,183 @@
+#cloud-config
+# ============================================================================
+# KISS Mail - Universal Cloud-Init Configuration
+# ============================================================================
+# Works on any cloud provider that supports cloud-init:
+# - AWS, GCP, Azure, Digital Ocean, Linode, Vultr, Hetzner, OVH, Scaleway, etc.
+# - Also works on bare metal with cloud-init installed
+#
+# Usage:
+#   1. Copy this file and customize the variables below
+#   2. Use as user-data when creating your VM/instance
+# ============================================================================
+
+# Customize these variables
+# write_files at the top will create a config file that the setup script reads
+
+write_files:
+  - path: /etc/kiss-mail.conf
+    permissions: '0600'
+    content: |
+      # KISS Mail Configuration
+      KISS_MAIL_DOMAIN=mail.example.com
+      KISS_MAIL_ADMIN_PASSWORD=
+      # Leave empty to auto-generate API key
+      KISS_MAIL_API_KEY=
+
+  - path: /opt/kiss-mail/setup.sh
+    permissions: '0755'
+    content: |
+      #!/bin/bash
+      # KISS Mail Setup Script
+      set -euo pipefail
+      
+      # Load config
+      source /etc/kiss-mail.conf
+      
+      # Logging
+      exec > >(tee /var/log/kiss-mail-setup.log) 2>&1
+      echo "Starting KISS Mail setup at $(date)"
+      
+      # Detect OS
+      if [ -f /etc/os-release ]; then
+        . /etc/os-release
+        OS=$ID
+      else
+        echo "Cannot detect OS"
+        exit 1
+      fi
+      
+      echo "Detected OS: $OS"
+      
+      # Install Docker
+      if ! command -v docker &> /dev/null; then
+        echo "Installing Docker..."
+        curl -fsSL https://get.docker.com | sh
+        systemctl enable docker
+        systemctl start docker
+      fi
+      
+      # Install packages
+      case $OS in
+        ubuntu|debian)
+          apt-get update
+          apt-get install -y nginx certbot python3-certbot-nginx curl
+          ;;
+        centos|rhel|rocky|almalinux|fedora)
+          dnf install -y nginx certbot python3-certbot-nginx curl
+          ;;
+        *)
+          echo "Installing packages for $OS may require manual steps"
+          ;;
+      esac
+      
+      # Create directories
+      mkdir -p /opt/kiss-mail/data
+      chown -R 1000:1000 /opt/kiss-mail
+      
+      # Generate API key if not set
+      if [ -z "$KISS_MAIL_API_KEY" ]; then
+        KISS_MAIL_API_KEY=$(openssl rand -hex 32)
+      fi
+      
+      # Pull and run container
+      echo "Starting KISS Mail container..."
+      docker pull ghcr.io/pegasusheavy/kiss-mail:latest || true
+      
+      docker run -d \
+        --name kiss-mail \
+        --restart unless-stopped \
+        -p 25:2525 \
+        -p 587:2525 \
+        -p 143:1143 \
+        -p 110:1100 \
+        -p 8080:8080 \
+        -p 8025:8025 \
+        -v /opt/kiss-mail/data:/data \
+        -e KISS_MAIL_DOMAIN="$KISS_MAIL_DOMAIN" \
+        -e KISS_MAIL_API_KEY="$KISS_MAIL_API_KEY" \
+        -e KISS_MAIL_WEB_BIND=0.0.0.0 \
+        -e KISS_MAIL_API_BIND=0.0.0.0 \
+        -e RUST_LOG=info \
+        ghcr.io/pegasusheavy/kiss-mail:latest || docker start kiss-mail
+      
+      # Wait for startup
+      sleep 10
+      
+      # Create admin user if password provided
+      if [ -n "$KISS_MAIL_ADMIN_PASSWORD" ]; then
+        docker exec kiss-mail kiss-mail add admin "$KISS_MAIL_ADMIN_PASSWORD" --role superadmin || true
+      fi
+      
+      # Configure Nginx
+      cat > /etc/nginx/conf.d/kiss-mail.conf << 'NGINX'
+      server {
+          listen 80;
+          server_name _;
+      
+          location /admin {
+              proxy_pass http://127.0.0.1:8080;
+              proxy_http_version 1.1;
+              proxy_set_header Host $host;
+              proxy_set_header X-Real-IP $remote_addr;
+              proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+              proxy_set_header X-Forwarded-Proto $scheme;
+          }
+      
+          location /api {
+              proxy_pass http://127.0.0.1:8025;
+              proxy_http_version 1.1;
+              proxy_set_header Host $host;
+              proxy_set_header X-Real-IP $remote_addr;
+              proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+              proxy_set_header X-Forwarded-Proto $scheme;
+          }
+      
+          location / {
+              return 301 /admin;
+          }
+      }
+      NGINX
+      
+      # Remove default site on Debian/Ubuntu
+      rm -f /etc/nginx/sites-enabled/default 2>/dev/null || true
+      
+      # Test and reload Nginx
+      nginx -t && systemctl enable nginx && systemctl restart nginx
+      
+      # Get public IP
+      PUBLIC_IP=$(curl -s ifconfig.me || curl -s icanhazip.com || echo "YOUR_IP")
+      
+      # Save credentials
+      cat > /opt/kiss-mail/credentials.txt << EOF
+      KISS Mail Server Credentials
+      =============================
+      Domain: $KISS_MAIL_DOMAIN
+      API Key: $KISS_MAIL_API_KEY
+      Web Admin: http://$PUBLIC_IP/admin
+      
+      Generated: $(date)
+      EOF
+      
+      chmod 600 /opt/kiss-mail/credentials.txt
+      
+      echo ""
+      echo "============================================"
+      echo "KISS Mail setup complete!"
+      echo "============================================"
+      echo ""
+      echo "Web Admin: http://$PUBLIC_IP/admin"
+      echo "Credentials: /opt/kiss-mail/credentials.txt"
+      echo ""
+
+package_update: true
+package_upgrade: true
+
+packages:
+  - curl
+  - ca-certificates
+
+runcmd:
+  - /opt/kiss-mail/setup.sh
+
+final_message: "KISS Mail cloud-init complete after $UPTIME seconds"

@@ -1,0 +1,21 @@
+# ============================================================================
+# KISS Mail - Hetzner Cloud Variables
+# ============================================================================
+
+# Hetzner Cloud API token
+hcloud_token = "your-hetzner-api-token"
+
+# Location
+# nbg1 = Nuremberg, fsn1 = Falkenstein, hel1 = Helsinki, ash = Ashburn
+location = "nbg1"
+
+# Server type
+# cx11 = €3.29/month (1 vCPU, 2GB RAM)
+# cx21 = €5.49/month (2 vCPU, 4GB RAM)
+server_type = "cx11"
+
+# Mail domain
+domain = "mail.example.com"
+
+# SSH key names (optional, must exist in Hetzner)
+# ssh_keys = ["my-key"]

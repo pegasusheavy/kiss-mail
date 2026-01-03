@@ -1,0 +1,238 @@
+# ============================================================================
+# KISS Mail Helm Chart - Default Values
+# ============================================================================
+
+# ----------------------------------------------------------------------------
+# Image configuration
+# ----------------------------------------------------------------------------
+image:
+  repository: ghcr.io/pegasusheavy/kiss-mail
+  tag: "latest"  # Or pin to specific version
+  pullPolicy: Always
+
+imagePullSecrets: []
+
+# ----------------------------------------------------------------------------
+# Basic configuration
+# ----------------------------------------------------------------------------
+replicaCount: 1
+
+nameOverride: ""
+fullnameOverride: ""
+
+# Mail domain
+domain: "mail.example.com"
+
+# ----------------------------------------------------------------------------
+# Service ports
+# ----------------------------------------------------------------------------
+ports:
+  smtp: 2525
+  imap: 1143
+  pop3: 1100
+  web: 8080
+  api: 8025
+
+# ----------------------------------------------------------------------------
+# Service account
+# ----------------------------------------------------------------------------
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+# ----------------------------------------------------------------------------
+# Pod configuration
+# ----------------------------------------------------------------------------
+podAnnotations: {}
+
+podSecurityContext:
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+
+securityContext:
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+
+# ----------------------------------------------------------------------------
+# Resources
+# ----------------------------------------------------------------------------
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 1000m
+    memory: 512Mi
+
+# ----------------------------------------------------------------------------
+# Health checks
+# ----------------------------------------------------------------------------
+livenessProbe:
+  tcpSocket:
+    port: smtp
+  initialDelaySeconds: 10
+  periodSeconds: 30
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  tcpSocket:
+    port: smtp
+  initialDelaySeconds: 5
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+# ----------------------------------------------------------------------------
+# Persistence
+# ----------------------------------------------------------------------------
+persistence:
+  enabled: true
+  storageClass: ""
+  accessMode: ReadWriteOnce
+  size: 10Gi
+  annotations: {}
+  existingClaim: ""
+
+# ----------------------------------------------------------------------------
+# Service configuration
+# ----------------------------------------------------------------------------
+service:
+  type: ClusterIP
+  annotations: {}
+
+# External service (LoadBalancer for mail ports)
+externalService:
+  enabled: false
+  type: LoadBalancer
+  annotations: {}
+  # Map external ports to internal ports
+  ports:
+    smtp: 25
+    smtpAlt: 587
+    imap: 143
+    pop3: 110
+  loadBalancerSourceRanges: []
+
+# ----------------------------------------------------------------------------
+# Ingress configuration (for web admin and API)
+# ----------------------------------------------------------------------------
+ingress:
+  enabled: false
+  className: nginx
+  annotations: {}
+    # nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    # cert-manager.io/cluster-issuer: letsencrypt-prod
+  hosts:
+    - host: mail.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+  #  - secretName: kiss-mail-tls
+  #    hosts:
+  #      - mail.example.com
+
+# ----------------------------------------------------------------------------
+# API configuration
+# ----------------------------------------------------------------------------
+api:
+  enabled: true
+  # API key for remote administration (set via secrets)
+  # apiKey: ""
+
+# ----------------------------------------------------------------------------
+# Web admin configuration
+# ----------------------------------------------------------------------------
+webAdmin:
+  enabled: true
+
+# ----------------------------------------------------------------------------
+# LDAP configuration
+# ----------------------------------------------------------------------------
+ldap:
+  enabled: false
+  url: ""
+  bindDn: ""
+  baseDn: ""
+  userFilter: "(uid={0})"
+  useTls: false
+  useStartTls: false
+  # Password stored in secret
+
+# ----------------------------------------------------------------------------
+# SSO configuration
+# ----------------------------------------------------------------------------
+sso:
+  enabled: false
+  # Supported: onepassword, google, microsoft, okta, auth0
+  provider: ""
+  clientId: ""
+  redirectUri: ""
+  # Client secret stored in secret
+
+# ----------------------------------------------------------------------------
+# ClamAV configuration
+# ----------------------------------------------------------------------------
+clamav:
+  enabled: false
+  # Use external ClamAV service
+  address: "clamav:3310"
+  # Deploy ClamAV as a sidecar
+  sidecar:
+    enabled: false
+    image:
+      repository: clamav/clamav
+      tag: stable
+      pullPolicy: IfNotPresent
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 1Gi
+
+# ----------------------------------------------------------------------------
+# Logging
+# ----------------------------------------------------------------------------
+logging:
+  level: info
+
+# ----------------------------------------------------------------------------
+# Node scheduling
+# ----------------------------------------------------------------------------
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+# ----------------------------------------------------------------------------
+# Secrets (optional - can use external secrets)
+# ----------------------------------------------------------------------------
+secrets:
+  # Create secrets from values (not recommended for production)
+  create: false
+  apiKey: ""
+  ldapPassword: ""
+  ssoClientSecret: ""
+
+# ----------------------------------------------------------------------------
+# Extra environment variables
+# ----------------------------------------------------------------------------
+extraEnv: []
+#  - name: CUSTOM_VAR
+#    value: "custom-value"
+
+# ----------------------------------------------------------------------------
+# Extra volumes
+# ----------------------------------------------------------------------------
+extraVolumes: []
+
+extraVolumeMounts: []

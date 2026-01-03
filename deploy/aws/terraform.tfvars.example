@@ -1,0 +1,30 @@
+# ============================================================================
+# KISS Mail - AWS Terraform Variables
+# ============================================================================
+# Copy this file to terraform.tfvars and customize:
+#   cp terraform.tfvars.example terraform.tfvars
+# ============================================================================
+
+# AWS Region
+region = "us-east-1"
+
+# EC2 instance type (t3.micro is free tier eligible)
+instance_type = "t3.micro"
+
+# Your mail domain
+domain = "mail.example.com"
+
+# Initial admin password (optional - will be auto-generated if empty)
+# admin_password = "your-secure-password"
+
+# SSH key pair name (optional - for SSH access)
+# ssh_key_name = "my-key-pair"
+
+# Allowed CIDR for SSH (only if ssh_key_name is set)
+# allowed_ssh_cidr = "YOUR_IP/32"
+
+# EBS volume size in GB
+volume_size = 20
+
+# Environment tag
+environment = "production"

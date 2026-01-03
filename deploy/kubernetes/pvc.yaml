@@ -1,0 +1,19 @@
+# ============================================================================
+# KISS Mail - Persistent Volume Claim
+# ============================================================================
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: kiss-mail-data
+  namespace: kiss-mail
+  labels:
+    app.kubernetes.io/name: kiss-mail
+    app.kubernetes.io/component: storage
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  # Uncomment and set your storage class
+  # storageClassName: standard

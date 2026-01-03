@@ -1,0 +1,127 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "kiss-mail.fullname" . }}
+  labels:
+    {{- include "kiss-mail.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "kiss-mail.selectorLabels" . | nindent 6 }}
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "kiss-mail.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "kiss-mail.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          image: {{ include "kiss-mail.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          ports:
+            - name: smtp
+              containerPort: {{ .Values.ports.smtp }}
+              protocol: TCP
+            - name: imap
+              containerPort: {{ .Values.ports.imap }}
+              protocol: TCP
+            - name: pop3
+              containerPort: {{ .Values.ports.pop3 }}
+              protocol: TCP
+            {{- if .Values.webAdmin.enabled }}
+            - name: web
+              containerPort: {{ .Values.ports.web }}
+              protocol: TCP
+            {{- end }}
+            {{- if .Values.api.enabled }}
+            - name: api
+              containerPort: {{ .Values.ports.api }}
+              protocol: TCP
+            {{- end }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "kiss-mail.fullname" . }}-config
+            {{- if .Values.secrets.create }}
+            - secretRef:
+                name: {{ include "kiss-mail.secretName" . }}
+            {{- end }}
+          {{- with .Values.extraEnv }}
+          env:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            {{- with .Values.extraVolumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- with .Values.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+        
+        {{- if .Values.clamav.sidecar.enabled }}
+        - name: clamav
+          image: "{{ .Values.clamav.sidecar.image.repository }}:{{ .Values.clamav.sidecar.image.tag }}"
+          imagePullPolicy: {{ .Values.clamav.sidecar.image.pullPolicy }}
+          ports:
+            - name: clamav
+              containerPort: 3310
+              protocol: TCP
+          resources:
+            {{- toYaml .Values.clamav.sidecar.resources | nindent 12 }}
+          volumeMounts:
+            - name: clamav-data
+              mountPath: /var/lib/clamav
+        {{- end }}
+      
+      volumes:
+        - name: data
+          {{- if .Values.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ include "kiss-mail.pvcName" . }}
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+        {{- if .Values.clamav.sidecar.enabled }}
+        - name: clamav-data
+          emptyDir: {}
+        {{- end }}
+        {{- with .Values.extraVolumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

@@ -1,0 +1,51 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "kiss-mail.fullname" . }}-config
+  labels:
+    {{- include "kiss-mail.labels" . | nindent 4 }}
+data:
+  # Domain configuration
+  KISS_MAIL_DOMAIN: {{ .Values.domain | quote }}
+  
+  # Port configuration
+  KISS_MAIL_SMTP_PORT: {{ .Values.ports.smtp | quote }}
+  KISS_MAIL_IMAP_PORT: {{ .Values.ports.imap | quote }}
+  KISS_MAIL_POP3_PORT: {{ .Values.ports.pop3 | quote }}
+  KISS_MAIL_WEB_PORT: {{ .Values.ports.web | quote }}
+  KISS_MAIL_API_PORT: {{ .Values.ports.api | quote }}
+  
+  # Bind addresses
+  KISS_MAIL_WEB_BIND: "0.0.0.0"
+  KISS_MAIL_API_BIND: "0.0.0.0"
+  KISS_MAIL_WEB_ENABLED: {{ .Values.webAdmin.enabled | quote }}
+  KISS_MAIL_API_ENABLED: {{ .Values.api.enabled | quote }}
+  
+  # Data directory
+  KISS_MAIL_DATA_DIR: "/data"
+  
+  # Logging
+  RUST_LOG: {{ .Values.logging.level | quote }}
+  
+  {{- if .Values.ldap.enabled }}
+  # LDAP configuration
+  KISS_MAIL_LDAP_URL: {{ .Values.ldap.url | quote }}
+  KISS_MAIL_LDAP_BIND_DN: {{ .Values.ldap.bindDn | quote }}
+  KISS_MAIL_LDAP_BASE_DN: {{ .Values.ldap.baseDn | quote }}
+  KISS_MAIL_LDAP_USER_FILTER: {{ .Values.ldap.userFilter | quote }}
+  KISS_MAIL_LDAP_USE_TLS: {{ .Values.ldap.useTls | quote }}
+  KISS_MAIL_LDAP_USE_STARTTLS: {{ .Values.ldap.useStartTls | quote }}
+  {{- end }}
+  
+  {{- if .Values.sso.enabled }}
+  # SSO configuration
+  KISS_MAIL_SSO_PROVIDER: {{ .Values.sso.provider | quote }}
+  KISS_MAIL_SSO_CLIENT_ID: {{ .Values.sso.clientId | quote }}
+  KISS_MAIL_SSO_REDIRECT_URI: {{ .Values.sso.redirectUri | quote }}
+  {{- end }}
+  
+  {{- if .Values.clamav.enabled }}
+  # ClamAV configuration
+  KISS_MAIL_CLAMAV_ENABLED: "true"
+  KISS_MAIL_CLAMAV_ADDRESS: {{ .Values.clamav.address | quote }}
+  {{- end }}

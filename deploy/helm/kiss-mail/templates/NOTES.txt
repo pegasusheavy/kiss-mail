@@ -1,0 +1,60 @@
+
+╦╔═╦╔══╗  ╔╦╗╔═╗╦╦  
+╠╩╗║╚═╗╚═╗║║║╠═╣║║  
+╩ ╩╩╚═╝╚═╝╩ ╩╩ ╩╩╩═╝
+KISS Mail Server has been deployed!
+
+Domain: {{ .Values.domain }}
+
+1. Get the application services:
+
+   # Internal ClusterIP service
+   kubectl get svc {{ include "kiss-mail.fullname" . }} -n {{ .Release.Namespace }}
+
+{{- if .Values.externalService.enabled }}
+   # External LoadBalancer service
+   kubectl get svc {{ include "kiss-mail.fullname" . }}-external -n {{ .Release.Namespace }}
+{{- end }}
+
+2. Access the services:
+
+   SMTP: {{ .Values.ports.smtp }}
+   IMAP: {{ .Values.ports.imap }}
+   POP3: {{ .Values.ports.pop3 }}
+{{- if .Values.webAdmin.enabled }}
+   Web Admin: {{ .Values.ports.web }}
+{{- end }}
+{{- if .Values.api.enabled }}
+   REST API: {{ .Values.ports.api }}
+{{- end }}
+
+3. Port forward for local access:
+
+   # Web Admin
+   kubectl port-forward svc/{{ include "kiss-mail.fullname" . }} {{ .Values.ports.web }}:{{ .Values.ports.web }} -n {{ .Release.Namespace }}
+   
+   # Then open: http://localhost:{{ .Values.ports.web }}/admin
+
+   # SMTP
+   kubectl port-forward svc/{{ include "kiss-mail.fullname" . }} {{ .Values.ports.smtp }}:{{ .Values.ports.smtp }} -n {{ .Release.Namespace }}
+
+{{- if .Values.ingress.enabled }}
+
+4. Ingress:
+{{- range .Values.ingress.hosts }}
+   - http{{ if $.Values.ingress.tls }}s{{ end }}://{{ .host }}
+{{- end }}
+{{- end }}
+
+5. Quick CLI commands:
+
+   # List users
+   kubectl exec -it deploy/{{ include "kiss-mail.fullname" . }} -n {{ .Release.Namespace }} -- kiss-mail list
+
+   # Add user
+   kubectl exec -it deploy/{{ include "kiss-mail.fullname" . }} -n {{ .Release.Namespace }} -- kiss-mail add <username> <password>
+
+   # Check stats
+   kubectl exec -it deploy/{{ include "kiss-mail.fullname" . }} -n {{ .Release.Namespace }} -- kiss-mail stats
+
+For more information, visit: https://github.com/PegasusHeavyIndustries/kiss-mail

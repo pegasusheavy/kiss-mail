@@ -1,0 +1,10 @@
+# ============================================================================
+# KISS Mail - Kubernetes Namespace
+# ============================================================================
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: kiss-mail
+  labels:
+    app.kubernetes.io/name: kiss-mail
+    app.kubernetes.io/part-of: kiss-mail
