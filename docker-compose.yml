@@ -14,7 +14,7 @@ services:
   # KISS Mail Server
   # --------------------------------------------------------------------------
   kiss-mail:
-    image: ghcr.io/pegasusheavy/kiss-mail:latest
+    image: ghcr.io/quinnjr/kiss-mail:latest
     # build: .  # Uncomment to build from source instead
     container_name: kiss-mail
     restart: unless-stopped

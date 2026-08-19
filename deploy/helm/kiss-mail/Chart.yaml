@@ -12,21 +12,21 @@ keywords:
   - pop3
   - mail-server
 
-home: https://github.com/pegasusheavy/kiss-mail
+home: https://github.com/quinnjr/kiss-mail
 
 sources:
-  - https://github.com/pegasusheavy/kiss-mail
+  - https://github.com/quinnjr/kiss-mail
 
 maintainers:
-  - name: Pegasus Heavy Industries
-    url: https://github.com/pegasusheavy
+  - name: Joseph R. Quinn
+    url: https://github.com/quinnjr
 
-icon: https://raw.githubusercontent.com/pegasusheavy/kiss-mail/main/icon.png
+icon: https://raw.githubusercontent.com/quinnjr/kiss-mail/main/icon.png
 
 annotations:
   artifacthub.io/license: MIT
   artifacthub.io/links: |
     - name: Documentation
-      url: https://github.com/pegasusheavy/kiss-mail#readme
+      url: https://github.com/quinnjr/kiss-mail#readme
     - name: Support
-      url: https://github.com/pegasusheavy/kiss-mail/issues
+      url: https://github.com/quinnjr/kiss-mail/issues

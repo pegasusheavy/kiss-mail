@@ -43,7 +43,7 @@ FROM alpine:3.21 AS runtime
 
 LABEL org.opencontainers.image.title="KISS Mail Server"
 LABEL org.opencontainers.image.description="Simple SMTP, IMAP, POP3 email server"
-LABEL org.opencontainers.image.source="https://github.com/pegasusheavy/kiss-mail"
+LABEL org.opencontainers.image.source="https://github.com/quinnjr/kiss-mail"
 
 # Install runtime dependencies
 RUN apk add --no-cache \

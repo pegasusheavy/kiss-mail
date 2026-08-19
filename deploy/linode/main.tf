@@ -188,7 +188,7 @@ resource "linode_stackscript" "kiss_mail" {
       -e KISS_MAIL_API_KEY="$API_KEY" \
       -e KISS_MAIL_WEB_BIND=0.0.0.0 \
       -e KISS_MAIL_API_BIND=0.0.0.0 \
-      ghcr.io/pegasusheavy/kiss-mail:latest
+      ghcr.io/quinnjr/kiss-mail:latest
     
     # Configure Nginx
     cat > /etc/nginx/sites-available/kiss-mail << 'NGINX'

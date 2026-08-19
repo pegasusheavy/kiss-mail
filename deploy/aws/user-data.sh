@@ -33,11 +33,11 @@ chown -R 1000:1000 /opt/kiss-mail
 # Pull and Run KISS Mail
 # ----------------------------------------------------------------------------
 # Pull latest image (or build from source)
-docker pull ghcr.io/pegasusheavy/kiss-mail:latest || {
+docker pull ghcr.io/quinnjr/kiss-mail:latest || {
     echo "Image not found, building from source..."
     dnf install -y git
     cd /tmp
-    git clone https://github.com/pegasusheavy/kiss-mail.git
+    git clone https://github.com/quinnjr/kiss-mail.git
     cd kiss-mail
     docker build -t kiss-mail:latest .
 }

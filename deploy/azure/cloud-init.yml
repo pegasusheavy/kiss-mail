@@ -41,7 +41,7 @@ runcmd:
       -e KISS_MAIL_WEB_BIND=0.0.0.0 \
       -e KISS_MAIL_API_BIND=0.0.0.0 \
       -e RUST_LOG=info \
-      ghcr.io/pegasusheavy/kiss-mail:latest
+      ghcr.io/quinnjr/kiss-mail:latest
   
   # Configure Nginx
   - |

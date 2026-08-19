@@ -32,7 +32,7 @@ spec:
       
       containers:
         - name: kiss-mail
-          image: ghcr.io/pegasusheavy/kiss-mail:latest
+          image: ghcr.io/quinnjr/kiss-mail:latest
           imagePullPolicy: Always
           
           ports:

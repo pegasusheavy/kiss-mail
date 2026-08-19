@@ -13,7 +13,7 @@ docker run -d \
   -p 8080:8080 \
   -v kiss-mail-data:/data \
   -e KISS_MAIL_DOMAIN=mail.example.com \
-  ghcr.io/pegasusheavy/kiss-mail:latest
+  ghcr.io/quinnjr/kiss-mail:latest
 
 # Access web admin
 open http://localhost:8080/admin
@@ -24,7 +24,7 @@ That's it. The server starts and creates an admin account automatically.
 ### One-Line Deploy (Any VPS)
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/pegasusheavy/kiss-mail/main/deploy/scripts/install.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/quinnjr/kiss-mail/main/deploy/scripts/install.sh | sudo bash
 ```
 
 ### Build from Source (Optional)
@@ -95,7 +95,7 @@ Our containers are built on [Docker Hardened Images](https://www.docker.com/prod
 
 ```bash
 # Pull the official hardened image
-docker pull ghcr.io/pegasusheavy/kiss-mail:latest
+docker pull ghcr.io/quinnjr/kiss-mail:latest
 
 # Run container
 docker run -d \
@@ -107,7 +107,7 @@ docker run -d \
   -v kiss-mail-data:/data \
   -e KISS_MAIL_DOMAIN=mail.example.com \
   -e KISS_MAIL_WEB_BIND=0.0.0.0 \
-  ghcr.io/pegasusheavy/kiss-mail:latest
+  ghcr.io/quinnjr/kiss-mail:latest
 
 # Create admin user
 docker exec kiss-mail kiss-mail add admin yourpassword --role superadmin
@@ -201,14 +201,14 @@ helm uninstall kiss-mail --namespace kiss-mail
 
 ## Cloud Deployment
 
-All cloud deployments use **Docker containers** pulled from `ghcr.io/pegasusheavy/kiss-mail:latest`.
+All cloud deployments use **Docker containers** pulled from `ghcr.io/quinnjr/kiss-mail:latest`.
 
 ### One-Click Install (Any VPS)
 
 SSH into your server and run:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/pegasusheavy/kiss-mail/main/deploy/scripts/install.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/quinnjr/kiss-mail/main/deploy/scripts/install.sh | sudo bash
 ```
 
 This installs Docker, pulls the container image, and starts KISS Mail automatically.
@@ -284,13 +284,13 @@ sudo certbot --nginx -d mail.yourdomain.com
 ### Upgrade
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/pegasusheavy/kiss-mail/main/deploy/scripts/upgrade.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/quinnjr/kiss-mail/main/deploy/scripts/upgrade.sh | sudo bash
 ```
 
 ### Uninstall
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/pegasusheavy/kiss-mail/main/deploy/scripts/uninstall.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/quinnjr/kiss-mail/main/deploy/scripts/uninstall.sh | sudo bash
 
 # Keep data
 curl -fsSL ... | sudo bash -s -- --keep-data

@@ -1,11 +1,11 @@
 blank_issues_enabled: false
 contact_links:
   - name: 📖 Documentation
-    url: https://github.com/pegasusheavy/kiss-mail#readme
+    url: https://github.com/quinnjr/kiss-mail#readme
     about: Check our documentation before opening an issue
   - name: 💬 Discussions
-    url: https://github.com/pegasusheavy/kiss-mail/discussions
+    url: https://github.com/quinnjr/kiss-mail/discussions
     about: Ask questions and discuss ideas
   - name: 🔒 Security Vulnerabilities (Critical)
-    url: https://github.com/pegasusheavy/kiss-mail/security/advisories/new
+    url: https://github.com/quinnjr/kiss-mail/security/advisories/new
     about: Report critical security vulnerabilities privately

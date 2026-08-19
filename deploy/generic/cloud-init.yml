@@ -82,7 +82,7 @@ write_files:
       
       # Pull and run container
       echo "Starting KISS Mail container..."
-      docker pull ghcr.io/pegasusheavy/kiss-mail:latest || true
+      docker pull ghcr.io/quinnjr/kiss-mail:latest || true
       
       docker run -d \
         --name kiss-mail \
@@ -99,7 +99,7 @@ write_files:
         -e KISS_MAIL_WEB_BIND=0.0.0.0 \
         -e KISS_MAIL_API_BIND=0.0.0.0 \
         -e RUST_LOG=info \
-        ghcr.io/pegasusheavy/kiss-mail:latest || docker start kiss-mail
+        ghcr.io/quinnjr/kiss-mail:latest || docker start kiss-mail
       
       # Wait for startup
       sleep 10

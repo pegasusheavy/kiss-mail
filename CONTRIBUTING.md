@@ -48,7 +48,7 @@ Before proposing a new feature, ask yourself:
 # Fork the repository on GitHub, then:
 git clone https://github.com/YOUR_USERNAME/kiss-mail.git
 cd kiss-mail
-git remote add upstream https://github.com/pegasusheavy/kiss-mail.git
+git remote add upstream https://github.com/quinnjr/kiss-mail.git
 ```
 
 ## Development Setup
@@ -357,7 +357,7 @@ For significant changes, update CHANGELOG.md:
 
 ## Questions?
 
-- Open a [Discussion](https://github.com/pegasusheavy/kiss-mail/discussions)
+- Open a [Discussion](https://github.com/quinnjr/kiss-mail/discussions)
 - Check existing issues
 - Read the documentation
 
