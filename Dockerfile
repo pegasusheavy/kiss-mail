@@ -25,15 +25,19 @@
 # -----------------------------------------------------------------------------
 # Stage 1: Build (using DHI Rust Alpine dev image)
 # -----------------------------------------------------------------------------
-FROM dhi.io/rust:1.83-alpine3.21-dev AS builder
+FROM dhi.io/rust:1.85-alpine3.21-dev AS builder
 
 WORKDIR /app
 
 # Install build dependencies for native compilation
-# Note: Using rustls for TLS, so no OpenSSL needed
+# Note: ldap3's default "tls" feature and reqwest's default-tls feature both
+# pull in native-tls/openssl-sys even though this app's own TLS usage is
+# rustls-based, so openssl-dev is required to satisfy that transitive build dependency.
 RUN apk add --no-cache \
     musl-dev \
-    pkgconfig
+    pkgconfig \
+    openssl-dev \
+    openssl-libs-static
 
 # Copy manifests first for dependency caching
 COPY Cargo.toml Cargo.lock ./
