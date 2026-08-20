@@ -149,7 +149,7 @@ If you prefer the DO dashboard:
 3. SSH in and run:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/pegasusheavy/kiss-mail/main/deploy/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/quinnjr/kiss-mail/main/deploy/scripts/install.sh | bash
 ```
 
 ## Cleanup

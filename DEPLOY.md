@@ -2,7 +2,7 @@
 
 This guide covers all deployment options for KISS Mail.
 
-> **Recommended**: All deployments use **Docker containers** from `ghcr.io/pegasusheavy/kiss-mail:latest`
+> **Recommended**: All deployments use **Docker containers** from `ghcr.io/quinnjr/kiss-mail:latest`
 
 ## Deployment Options
 
@@ -36,7 +36,7 @@ The fastest way to deploy on any Linux server.
 ### Install
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/pegasusheavy/kiss-mail/main/deploy/scripts/install.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/quinnjr/kiss-mail/main/deploy/scripts/install.sh | sudo bash
 ```
 
 ### Install with Options
@@ -81,7 +81,7 @@ docker run -d \
 ### Build from Source
 
 ```bash
-git clone https://github.com/pegasusheavy/kiss-mail.git
+git clone https://github.com/quinnjr/kiss-mail.git
 cd kiss-mail
 docker build -t kiss-mail:latest .
 ```
@@ -435,7 +435,7 @@ write_files:
 ### Manual (No Cloud-Init)
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/pegasusheavy/kiss-mail/main/deploy/scripts/install.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/quinnjr/kiss-mail/main/deploy/scripts/install.sh | sudo bash
 ```
 
 ---

@@ -46,7 +46,7 @@ write_files:
 If your provider doesn't support cloud-init, SSH into any Linux server and run:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/pegasusheavy/kiss-mail/main/deploy/scripts/install.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/quinnjr/kiss-mail/main/deploy/scripts/install.sh | sudo bash
 ```
 
 ## Configuration

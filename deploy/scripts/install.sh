@@ -3,7 +3,7 @@
 # KISS Mail - One-Click Install Script
 # ============================================================================
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/pegasusheavy/kiss-mail/main/deploy/scripts/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/quinnjr/kiss-mail/main/deploy/scripts/install.sh | bash
 #
 # Or with options:
 #   curl -fsSL ... | bash -s -- --domain mail.example.com --password mypass
@@ -258,8 +258,8 @@ install_kiss_mail() {
 
     # Pull container image (preferred method)
     log "Pulling Docker image from registry..."
-    if docker pull ghcr.io/pegasusheavy/kiss-mail:latest; then
-        KISS_MAIL_IMAGE="ghcr.io/pegasusheavy/kiss-mail:latest"
+    if docker pull ghcr.io/quinnjr/kiss-mail:latest; then
+        KISS_MAIL_IMAGE="ghcr.io/quinnjr/kiss-mail:latest"
         log "Using official container image"
     else
         warn "Registry image not available, building from source..."
@@ -268,9 +268,9 @@ install_kiss_mail() {
         cd "$tmpdir"
         
         if command -v git &> /dev/null; then
-            git clone --depth 1 https://github.com/pegasusheavy/kiss-mail.git .
+            git clone --depth 1 https://github.com/quinnjr/kiss-mail.git .
         else
-            curl -sL https://github.com/pegasusheavy/kiss-mail/archive/main.tar.gz | tar xz --strip-components=1
+            curl -sL https://github.com/quinnjr/kiss-mail/archive/main.tar.gz | tar xz --strip-components=1
         fi
         
         docker build -t kiss-mail:latest .

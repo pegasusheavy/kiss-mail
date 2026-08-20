@@ -19,12 +19,12 @@ We take the security of KISS Mail seriously. If you discover a security vulnerab
 Instead, please report them privately using one of these methods:
 
 1. **GitHub Security Advisories** (Preferred):
-   - Go to the [Security tab](https://github.com/pegasusheavy/kiss-mail/security/advisories)
+   - Go to the [Security tab](https://github.com/quinnjr/kiss-mail/security/advisories)
    - Click "New draft security advisory"
    - Fill in the details
 
 2. **Email**:
-   - Send details to: `security@pegasusheavy.com`
+   - Send details to: `quinn.josephr@protonmail.com`
    - Use PGP encryption if possible (key below)
 
 ### What to Include
@@ -176,8 +176,8 @@ KISS Mail includes several security features:
 
 Security updates are announced via:
 
-- [GitHub Security Advisories](https://github.com/pegasusheavy/kiss-mail/security/advisories)
-- [GitHub Releases](https://github.com/pegasusheavy/kiss-mail/releases)
+- [GitHub Security Advisories](https://github.com/quinnjr/kiss-mail/security/advisories)
+- [GitHub Releases](https://github.com/quinnjr/kiss-mail/releases)
 
 Subscribe to releases to stay informed about security patches.
 

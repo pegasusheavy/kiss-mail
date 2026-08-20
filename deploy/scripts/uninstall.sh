@@ -69,7 +69,7 @@ docker rm kiss-mail 2>/dev/null || true
 
 log "Removing KISS Mail image..."
 docker rmi kiss-mail:latest 2>/dev/null || true
-docker rmi ghcr.io/pegasusheavy/kiss-mail:latest 2>/dev/null || true
+docker rmi ghcr.io/quinnjr/kiss-mail:latest 2>/dev/null || true
 
 log "Removing Nginx configuration..."
 rm -f /etc/nginx/conf.d/kiss-mail.conf 2>/dev/null || true

@@ -45,8 +45,8 @@ log "Current image: $CURRENT_IMAGE"
 
 # Pull latest image
 log "Pulling latest image..."
-if docker pull ghcr.io/pegasusheavy/kiss-mail:latest; then
-    NEW_IMAGE="ghcr.io/pegasusheavy/kiss-mail:latest"
+if docker pull ghcr.io/quinnjr/kiss-mail:latest; then
+    NEW_IMAGE="ghcr.io/quinnjr/kiss-mail:latest"
 else
     warn "Could not pull from registry, building from source..."
     
@@ -54,9 +54,9 @@ else
     cd "$tmpdir"
     
     if command -v git &> /dev/null; then
-        git clone --depth 1 https://github.com/pegasusheavy/kiss-mail.git .
+        git clone --depth 1 https://github.com/quinnjr/kiss-mail.git .
     else
-        curl -sL https://github.com/pegasusheavy/kiss-mail/archive/main.tar.gz | tar xz --strip-components=1
+        curl -sL https://github.com/quinnjr/kiss-mail/archive/main.tar.gz | tar xz --strip-components=1
     fi
     
     docker build -t kiss-mail:latest .

@@ -140,7 +140,7 @@ resource "google_compute_instance" "kiss_mail" {
       spec = {
         containers = [{
           name  = "kiss-mail"
-          image = "ghcr.io/pegasusheavy/kiss-mail:latest"
+          image = "ghcr.io/quinnjr/kiss-mail:latest"
           env = [
             { name = "KISS_MAIL_DOMAIN", value = var.domain },
             { name = "KISS_MAIL_WEB_BIND", value = "0.0.0.0" },

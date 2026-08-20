@@ -114,7 +114,10 @@ async fn run_server() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     // Ports - use standard ports if root, high ports otherwise
+    #[cfg(unix)]
     let is_root = unsafe { libc::getuid() } == 0;
+    #[cfg(not(unix))]
+    let is_root = false;
     let (smtp_port, imap_port, pop3_port) = if is_root {
         (25, 143, 110)
     } else {

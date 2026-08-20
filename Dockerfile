@@ -5,14 +5,14 @@
 # https://www.docker.com/products/hardened-images/
 #
 # PREFERRED: Pull from registry instead of building:
-#   docker pull ghcr.io/pegasusheavy/kiss-mail:latest
+#   docker pull ghcr.io/quinnjr/kiss-mail:latest
 #
 # Build locally (if needed):
 #   docker build -t kiss-mail .
 #
 # Run:
 #   docker run -d -p 25:2525 -p 143:1143 -p 110:1100 -p 8080:8080 \
-#     -v kiss-mail-data:/data ghcr.io/pegasusheavy/kiss-mail:latest
+#     -v kiss-mail-data:/data ghcr.io/quinnjr/kiss-mail:latest
 #
 # Security Features:
 #   - Docker Hardened Images base (CVE-free, SBOM included)
@@ -25,15 +25,19 @@
 # -----------------------------------------------------------------------------
 # Stage 1: Build (using DHI Rust Alpine dev image)
 # -----------------------------------------------------------------------------
-FROM dhi.io/rust:1.83-alpine3.21-dev AS builder
+FROM dhi.io/rust:1.85-alpine3.21-dev AS builder
 
 WORKDIR /app
 
 # Install build dependencies for native compilation
-# Note: Using rustls for TLS, so no OpenSSL needed
+# Note: ldap3's default "tls" feature and reqwest's default-tls feature both
+# pull in native-tls/openssl-sys even though this app's own TLS usage is
+# rustls-based, so openssl-dev is required to satisfy that transitive build dependency.
 RUN apk add --no-cache \
     musl-dev \
-    pkgconfig
+    pkgconfig \
+    openssl-dev \
+    openssl-libs-static
 
 # Copy manifests first for dependency caching
 COPY Cargo.toml Cargo.lock ./
@@ -62,8 +66,8 @@ FROM dhi.io/alpine:3.21 AS runtime
 # Labels
 LABEL org.opencontainers.image.title="KISS Mail Server"
 LABEL org.opencontainers.image.description="Simple SMTP, IMAP, POP3 email server - Hardened Container"
-LABEL org.opencontainers.image.source="https://github.com/pegasusheavy/kiss-mail"
-LABEL org.opencontainers.image.vendor="Pegasus Heavy Industries"
+LABEL org.opencontainers.image.source="https://github.com/quinnjr/kiss-mail"
+LABEL org.opencontainers.image.vendor="Joseph R. Quinn"
 LABEL org.opencontainers.image.base.name="dhi.io/alpine:3.21"
 LABEL org.opencontainers.image.licenses="MIT"
 

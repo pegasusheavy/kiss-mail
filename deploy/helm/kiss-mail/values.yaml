@@ -6,7 +6,7 @@
 # Image configuration
 # ----------------------------------------------------------------------------
 image:
-  repository: ghcr.io/pegasusheavy/kiss-mail
+  repository: ghcr.io/quinnjr/kiss-mail
   tag: "latest"  # Or pin to specific version
   pullPolicy: Always
 
